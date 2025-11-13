@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.venv
+coverage
+.git
+npm-debug.log
+.idea
+*.local
+Dockerfile
+docker-compose.yml

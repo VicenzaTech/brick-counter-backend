@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./tile-production-management
+      dockerfile: Dockerfile
+    container_name: tile-production-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5555
+      # Redis config
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # MQTT config
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      # Database config (TypeORM) - Use Docker Postgres container
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: admin
+      DB_PASSWORD: 123456
+      DB_DATABASE: brick-counter-dev
+      DB_SYNCHRONIZE: 'false'
+      DB_LOGGING: 'false'
+    ports:
+      - '5555:5555'
+    depends_on:
+      - redis
+      - mosquitto
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: tile-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: brick-counter-dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d brick-counter-dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tile-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: tile-mosquitto
+    restart: unless-stopped
+    ports:
+      - '1883:1883'
+      - '9001:9001' # optional websockets listener
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+volumes:
+  redis-data:
+  postgres-data:
