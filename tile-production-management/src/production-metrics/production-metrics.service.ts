@@ -207,7 +207,21 @@ export class ProductionMetricsService {
     const metrics = await this.findAll(query);
 
     if (metrics.length === 0) {
-      throw new NotFoundException('No metrics found for the given criteria');
+      // Return default empty summary instead of throwing error
+      return {
+        ty_le_hao_phi_tong: 0,
+        hieu_suat_san_xuat: 0,
+        ty_le_dat_khoan: 0,
+        san_luong_thuc_te: 0,
+        san_luong_khoan: 0,
+        hao_phi_moc: { value: 0, percentage: 0, status: 'good' },
+        hao_phi_lo: { value: 0, percentage: 0, status: 'good' },
+        hao_phi_truoc_mai: { value: 0, percentage: 0, status: 'good' },
+        hao_phi_hoan_thien: { value: 0, percentage: 0, status: 'good' },
+        trend_data: [],
+        alerts: [],
+        shift_comparison: [],
+      };
     }
 
     // Calculate averages
@@ -350,5 +364,41 @@ export class ProductionMetricsService {
     ];
 
     return { nodes, links };
+  }
+
+  /**
+   * Get daily breakdown for date range
+   */
+  async getDailyBreakdown(query: MetricsAnalyticsDto): Promise<MetricsSummaryDto[]> {
+    if (!query.startDate || !query.endDate) {
+      return [];
+    }
+
+    const startDate = new Date(query.startDate);
+    const endDate = new Date(query.endDate);
+    const dailyData: MetricsSummaryDto[] = [];
+
+    // Loop through each day in the range
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dayStart = new Date(currentDate);
+      const dayEnd = new Date(currentDate);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      // Query for this specific day
+      const dayQuery: MetricsAnalyticsDto = {
+        ...query,
+        startDate: dayStart,
+        endDate: dayEnd,
+      };
+
+      const summary = await this.getMetricsSummary(dayQuery);
+      dailyData.push(summary);
+
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return dailyData;
   }
 }

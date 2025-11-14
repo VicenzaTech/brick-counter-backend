@@ -47,4 +47,27 @@ export class BrickTypesController {
   remove(@Param('id') id: string): Promise<void> {
     return this.brickTypesService.remove(+id);
   }
+
+  @Get('active/all')
+  findAllActive(): Promise<BrickType[]> {
+    return this.brickTypesService.findAllActive();
+  }
+
+  @Get('active/production-line/:lineId')
+  findByProductionLine(@Param('lineId') lineId: string): Promise<BrickType[]> {
+    return this.brickTypesService.findByProductionLine(+lineId);
+  }
+
+  @Put(':id/activate')
+  setActive(
+    @Param('id') id: string,
+    @Body() body: { productionLineId: number; status?: 'producing' | 'paused' },
+  ): Promise<BrickType> {
+    return this.brickTypesService.setActive(+id, body.productionLineId, body.status);
+  }
+
+  @Put(':id/deactivate')
+  setInactive(@Param('id') id: string): Promise<BrickType> {
+    return this.brickTypesService.setInactive(+id);
+  }
 }

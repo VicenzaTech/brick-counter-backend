@@ -21,6 +21,18 @@ export class BrickType {
   @Column({ type: 'json', nullable: true })
   specs?: any;
 
+  @Column({ type: 'boolean', default: false })
+  isActive: boolean;
+
+  @Column({ type: 'int', nullable: true })
+  activeProductionLineId?: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastActiveAt?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  activeStatus?: string; // 'producing', 'paused', 'inactive'
+
   @OneToMany(() => Production, (prod) => prod.brickType)
   productions: Production[];
 

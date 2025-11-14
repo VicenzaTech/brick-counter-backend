@@ -35,6 +35,11 @@ export class ProductionMetricsController {
     return this.metricsService.getMetricsSummary(query);
   }
 
+  @Get('daily-breakdown')
+  getDailyBreakdown(@Query() query: MetricsAnalyticsDto) {
+    return this.metricsService.getDailyBreakdown(query);
+  }
+
   @Get('sankey')
   getSankeyData(@Query() query: MetricsAnalyticsDto) {
     return this.metricsService.getSankeyData(query);

@@ -10,23 +10,28 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5555
+
       # Redis config
       REDIS_HOST: redis
       REDIS_PORT: 6379
+
       # MQTT config
       MQTT_HOST: mosquitto
       MQTT_PORT: 1883
+
       # Database config (TypeORM) - Use Docker Postgres container
       DB_TYPE: postgres
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: 5432        # vẫn là 5432 vì backend chạy trong docker network
       DB_USERNAME: admin
       DB_PASSWORD: 123456
       DB_DATABASE: brick-counter-dev
       DB_SYNCHRONIZE: 'false'
       DB_LOGGING: 'false'
+
     ports:
       - '5555:5555'
+
     depends_on:
       - redis
       - mosquitto
@@ -40,10 +45,14 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: 123456
       POSTGRES_DB: brick-counter-dev
+
+    # 🔥 đổi cổng host → 5450
     ports:
-      - '5432:5432'
+      - '5450:5432'
+
     volumes:
       - postgres-data:/var/lib/postgresql/data
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d brick-counter-dev"]
       interval: 10s
@@ -70,7 +79,7 @@ services:
     restart: unless-stopped
     ports:
       - '1883:1883'
-      - '9001:9001' # optional websockets listener
+      - '9001:9001'
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
 

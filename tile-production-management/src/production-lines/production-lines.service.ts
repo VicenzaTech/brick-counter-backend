@@ -36,7 +36,7 @@ export class ProductionLinesService {
 
   async findAll(): Promise<ProductionLine[]> {
     return await this.productionLineRepository.find({
-      relations: ['workshop', 'positions', 'summaries', 'maintenances'],
+      relations: ['workshop', 'positions', 'summaries', 'maintenances', 'activeBrickType'],
     });
   }
 
