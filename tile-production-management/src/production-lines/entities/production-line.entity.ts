@@ -3,6 +3,7 @@ import { Workshop } from '../../workshops/entities/workshop.entity';
 import { Position } from '../../positions/entities/position.entity';
 import { ProductionSummary } from '../../production-summaries/entities/production-summary.entity';
 import { MaintenanceLog } from '../../maintenance-logs/entities/maintenance-log.entity';
+import { ProductionMetric } from '../../production-metrics/entities/production-metric.entity';
 
 @Entity('production_lines')
 export class ProductionLine {
@@ -32,4 +33,7 @@ export class ProductionLine {
 
   @OneToMany(() => MaintenanceLog, (log) => log.productionLine)
   maintenances: MaintenanceLog[];
+
+  @OneToMany(() => ProductionMetric, (metric) => metric.productionLine)
+  metrics: ProductionMetric[];
 }

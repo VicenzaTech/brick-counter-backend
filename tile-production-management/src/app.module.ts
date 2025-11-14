@@ -9,12 +9,16 @@ import { BrickType } from './brick-types/entities/brick-type.entity';
 import { Production } from './productions/entities/production.entity';
 import { ProductionSummary } from './production-summaries/entities/production-summary.entity';
 import { MaintenanceLog } from './maintenance-logs/entities/maintenance-log.entity';
+import { ProductionMetric } from './production-metrics/entities/production-metric.entity';
+import { QuotaTarget } from './quota-targets/entities/quota-target.entity';
 import { WorkshopsModule } from './workshops/workshops.module';
 import { ProductionLinesModule } from './production-lines/production-lines.module';
 import { PositionsModule } from './positions/positions.module';
 import { DevicesModule } from './devices/devices.module';
 import { ProductionsModule } from './productions/productions.module';
 import { BrickTypesModule } from './brick-types/brick-types.module';
+import { ProductionMetricsModule } from './production-metrics/production-metrics.module';
+import { QuotaTargetsModule } from './quota-targets/quota-targets.module';
 import { MqttModule } from './mqtt/mqtt.module';
 import { WebSocketModule } from './websocket/websocket.module';
 
@@ -42,6 +46,8 @@ import { WebSocketModule } from './websocket/websocket.module';
         Production,
         ProductionSummary,
         MaintenanceLog,
+        ProductionMetric,
+        QuotaTarget,
       ],
       synchronize: true, // false for production
     }),
@@ -55,6 +61,8 @@ import { WebSocketModule } from './websocket/websocket.module';
     DevicesModule,
     ProductionsModule,
     BrickTypesModule,
+    ProductionMetricsModule,
+    QuotaTargetsModule,
   ],
 })
 export class AppModule {}
