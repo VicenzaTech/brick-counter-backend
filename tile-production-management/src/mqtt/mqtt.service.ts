@@ -74,12 +74,14 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
    */
   async connect(): Promise<void> {
     try {
-      const host = this.configService.get<string>('MQTT_HOST', 'localhost');
-      const port = this.configService.get<number>('MQTT_PORT', 1883);
-      const username = this.configService.get<string>('MQTT_USERNAME', '');
-      const password = this.configService.get<string>('MQTT_PASSWORD', '');
+      const host = "192.168.221.4";
+      const port = 1883;
+      const password = "";
+      const username = "";
 
       const brokerUrl = `mqtt://${host}:${port}`;
+
+      this.logger.log(`🔌 Đang kết nối đến MQTT broker: ${brokerUrl}`);
 
       this.client = mqtt.connect(brokerUrl, {
         username,
@@ -87,6 +89,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         keepalive: 60,
         reconnectPeriod: 5000,
         clean: true,
+        clientId: `nestjs_backend_${Math.random().toString(16).substr(2, 8)}`,
       });
 
       this.client.on('connect', () => this.onConnect());
@@ -95,10 +98,16 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         this.onMessage(topic, payload),
       );
       this.client.on('error', (error) => this.onError(error));
+      this.client.on('reconnect', () => {
+        this.reconnectCount++;
+        this.logger.warn(`🔄 Reconnecting to MQTT... (attempt ${this.reconnectCount})`);
+      });
+      this.client.on('offline', () => {
+        this.logger.warn('📴 MQTT client is offline');
+      });
 
-      this.logger.log(`Đang kết nối đến MQTT broker: ${brokerUrl}`);
     } catch (error) {
-      this.logger.error(`Lỗi kết nối MQTT: ${error.message}`, error.stack);
+      this.logger.error(`❌ Lỗi kết nối MQTT: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -120,18 +129,22 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   private onConnect(): void {
     this.connected = true;
     this.reconnectCount = 0;
-    this.logger.log('Kết nối MQTT thành công!');
+    this.logger.log('✅ Kết nối MQTT thành công!');
 
     // Subscribe vào các topics
     this.topics.forEach((topic) => {
-      this.client.subscribe(topic, (error) => {
+      this.client.subscribe(topic, { qos: 1 }, (error) => {
         if (error) {
-          this.logger.error(`Lỗi subscribe topic ${topic}: ${error.message}`);
+          this.logger.error(`❌ Lỗi subscribe topic ${topic}: ${error.message}`);
         } else {
-          this.logger.log(`Đã subscribe topic: ${topic}`);
+          this.logger.log(`✅ Đã subscribe topic: ${topic}`);
         }
       });
     });
+
+    // Log số handlers đã đăng ký
+    this.logger.log(`📋 Telemetry handlers: ${this.telemetryHandlers.size}`);
+    this.logger.log(`📋 Health handlers: ${this.healthHandlers.size}`);
   }
 
   /**
@@ -155,9 +168,11 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   private async onMessage(topic: string, payload: Buffer): Promise<void> {
     try {
       const payloadStr = payload.toString('utf-8');
+      this.logger.log(`📨 Received MQTT message on topic: ${topic}`);
+      this.logger.debug(`   Payload: ${payloadStr.substring(0, 200)}${payloadStr.length > 200 ? '...' : ''}`);
       await this.processMessage(topic, payloadStr);
     } catch (error) {
-      this.logger.error(`Lỗi xử lý message: ${error.message}`, error.stack);
+      this.logger.error(`❌ Lỗi xử lý message: ${error.message}`, error.stack);
     }
   }
 
@@ -249,6 +264,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   ): Promise<void> {
     // Xử lý telemetry messages
     if (messageType === 'telemetry') {
+      this.logger.log(`🔄 Dispatching telemetry for device: ${deviceId} to ${this.telemetryHandlers.size} handlers`);
       // Process với tất cả telemetry handlers
       for (const [handlerName, handler] of this.telemetryHandlers) {
         try {
@@ -259,9 +275,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
             handler,
             `telemetry_${handlerName}`,
           );
+          this.logger.debug(`✅ Telemetry dispatched to handler: ${handlerName}`);
         } catch (error) {
           this.logger.error(
-            `Error dispatching telemetry to ${handlerName}: ${error.message}`,
+            `❌ Error dispatching telemetry to ${handlerName}: ${error.message}`,
             error.stack,
           );
         }
@@ -270,6 +287,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
     // Xử lý health messages
     if (messageType === 'health') {
+      this.logger.log(`🔄 Dispatching health for device: ${deviceId} to ${this.healthHandlers.size} handlers`);
       // Process với tất cả health handlers
       for (const [handlerName, handler] of this.healthHandlers) {
         try {
@@ -279,9 +297,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
             handler,
             `health_${handlerName}`,
           );
+          this.logger.debug(`✅ Health dispatched to handler: ${handlerName}`);
         } catch (error) {
           this.logger.error(
-            `Error dispatching health to ${handlerName}: ${error.message}`,
+            `❌ Error dispatching health to ${handlerName}: ${error.message}`,
             error.stack,
           );
         }

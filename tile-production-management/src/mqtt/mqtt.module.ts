@@ -6,12 +6,14 @@ import { Module, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 import { MqttService } from './mqtt.service';
+import { MqttController } from './mqtt.controller';
 import { MessageQueueService } from '../common/queue/message-queue.service';
 import { BoundedCacheService } from '../common/cache/bounded-cache.service';
 
 @Global()
 @Module({
   imports: [ConfigModule],
+  controllers: [MqttController],
   providers: [
     // Redis client provider
     {

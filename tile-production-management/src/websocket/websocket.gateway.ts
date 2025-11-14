@@ -14,8 +14,11 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, Injectable } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { DeviceTelemetry } from '../devices/entities/device-telemetry.entity';
 
 interface BroadcastMessage {
   element_id: string;
@@ -39,6 +42,11 @@ export class WebSocketGatewayService
   // Track connected clients by room
   private connectedClients: Map<string, Set<string>> = new Map();
 
+  constructor(
+    @InjectRepository(DeviceTelemetry)
+    private readonly telemetryRepository: Repository<DeviceTelemetry>,
+  ) {}
+
   afterInit(server: Server) {
     this.logger.log('WebSocket Gateway initialized');
     this.logger.log('Socket.IO server is ready to accept connections');
@@ -54,6 +62,9 @@ export class WebSocketGatewayService
     }
     this.connectedClients.get('devices')!.add(client.id);
     this.logger.log(`Client ${client.id} auto-joined room: devices`);
+    
+    // Emit initial telemetry data from database
+    this.sendInitialTelemetryData(client);
   }
 
   handleDisconnect(client: Socket) {
@@ -186,7 +197,9 @@ export class WebSocketGatewayService
    * Tương tự broadcast_message trong Django tong_quan app
    */
   broadcastDeviceUpdate(deviceId: string, data: any): void {
-    this.logger.log(`📱 Broadcasting device update for: ${deviceId}`);
+    const roomSize = this.getRoomSize('devices');
+    this.logger.log(`📱 Broadcasting device update for: ${deviceId} to ${roomSize} clients`);
+    this.logger.debug(`   Data: ${JSON.stringify(data).substring(0, 100)}`);
     this.broadcast('devices', 'device_update', {
       deviceId,
       ...data,
@@ -220,5 +233,46 @@ export class WebSocketGatewayService
    */
   getRooms(): string[] {
     return Array.from(this.connectedClients.keys());
+  }
+
+  /**
+   * Send initial telemetry data from database to newly connected client
+   */
+  private async sendInitialTelemetryData(client: Socket): Promise<void> {
+    try {
+      this.logger.log(`📤 Sending initial telemetry data to client ${client.id}`);
+      
+      // Fetch all latest telemetry from database
+      const telemetryData = await this.telemetryRepository.find({
+        order: {
+          lastMessageAt: 'DESC',
+        },
+      });
+
+      if (telemetryData && telemetryData.length > 0) {
+        // Format data for frontend
+        const initialData = telemetryData.map(t => ({
+          deviceId: t.deviceId,
+          count: t.count || 0,
+          errCount: t.errCount || 0,
+          rssi: t.rssi || 0,
+          status: t.status,
+          battery: t.battery,
+          temperature: t.temperature,
+          uptime: t.uptime,
+          timestamp: t.lastMessageAt?.toISOString() || new Date().toISOString(),
+        }));
+
+        // Emit to specific client
+        client.emit('initial_telemetry', initialData);
+        this.logger.log(`✅ Sent ${initialData.length} telemetry records to client ${client.id}`);
+      } else {
+        this.logger.log(`ℹ️ No telemetry data found in database`);
+        client.emit('initial_telemetry', []);
+      }
+    } catch (error) {
+      this.logger.error(`❌ Error sending initial telemetry: ${error.message}`, error.stack);
+      client.emit('initial_telemetry', []);
+    }
   }
 }

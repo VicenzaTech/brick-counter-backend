@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from './entities/device.entity';
+import { DeviceTelemetry } from './entities/device-telemetry.entity';
 import { Position } from '../positions/entities/position.entity';
 import { CreateDeviceDto } from './dtos/create-device.dto';
 import { UpdateDeviceDto } from './dtos/update-device.dto';
@@ -11,6 +12,8 @@ export class DevicesService {
   constructor(
     @InjectRepository(Device)
     private deviceRepository: Repository<Device>,
+    @InjectRepository(DeviceTelemetry)
+    private telemetryRepository: Repository<DeviceTelemetry>,
     @InjectRepository(Position)
     private positionRepository: Repository<Position>,
   ) {}
@@ -79,5 +82,33 @@ export class DevicesService {
   async remove(id: number): Promise<void> {
     const device = await this.findOne(id);
     await this.deviceRepository.remove(device);
+  }
+
+  /**
+   * Get latest telemetry for all devices from database
+   */
+  async getLatestTelemetry(): Promise<DeviceTelemetry[]> {
+    return await this.telemetryRepository.find({
+      relations: ['position'],
+      order: {
+        lastMessageAt: 'DESC',
+      },
+    });
+  }
+
+  /**
+   * Get latest telemetry for a specific device from database
+   */
+  async getDeviceLatestTelemetry(deviceId: string): Promise<DeviceTelemetry | null> {
+    const telemetry = await this.telemetryRepository.findOne({
+      where: { deviceId },
+      relations: ['position'],
+    });
+    
+    if (!telemetry) {
+      return null;
+    }
+    
+    return telemetry;
   }
 }

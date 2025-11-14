@@ -5,6 +5,7 @@ import { Workshop } from './workshops/entities/workshop.entity';
 import { ProductionLine } from './production-lines/entities/production-line.entity';
 import { Position } from './positions/entities/position.entity';
 import { Device } from './devices/entities/device.entity';
+import { DeviceTelemetry } from './devices/entities/device-telemetry.entity';
 import { BrickType } from './brick-types/entities/brick-type.entity';
 import { Production } from './productions/entities/production.entity';
 import { ProductionSummary } from './production-summaries/entities/production-summary.entity';
@@ -42,6 +43,7 @@ import { WebSocketModule } from './websocket/websocket.module';
         ProductionLine,
         Position,
         Device,
+        DeviceTelemetry,
         BrickType,
         Production,
         ProductionSummary,
