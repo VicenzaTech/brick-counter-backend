@@ -8,7 +8,10 @@ export class Device {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ unique: true })
+  deviceId: string;
+
+  @Column({ unique: true })
   name: string;
 
   @Column({ nullable: true })

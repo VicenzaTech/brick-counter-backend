@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { MqttService } from '../mqtt/mqtt.service';
 import { WebSocketGatewayService } from '../websocket/websocket.gateway';
 import { BoundedCacheService, RateLimitCacheService } from '../common/cache/bounded-cache.service';
+import { TelemetryLoggingService } from './services/telemetry-logging.service';
 import { Device } from './entities/device.entity';
 import { DeviceTelemetry } from './entities/device-telemetry.entity';
 
@@ -51,6 +52,7 @@ export class DevicesMqttHandler implements OnModuleInit {
     private readonly telemetryRepository: Repository<DeviceTelemetry>,
     private readonly mqttService: MqttService,
     private readonly websocketGateway: WebSocketGatewayService,
+    private readonly telemetryLoggingService: TelemetryLoggingService,
   ) {
     // Initialize caches
     this.deviceLatestData = new BoundedCacheService(100, 3600000); // 100 entries, 1 hour TTL
@@ -169,6 +171,22 @@ export class DevicesMqttHandler implements OnModuleInit {
         
         await this.telemetryRepository.save(telemetry);
         this.logger.log(`💾 Telemetry saved to database for ${deviceId}`);
+        
+        // 📝 Lưu telemetry log (cho tracking lịch sử)
+        try {
+          await this.telemetryLoggingService.logTelemetry({
+            deviceId,
+            count,
+            errCount,
+            rssi,
+            recordedAt: timestamp,
+            rawPayload: message,
+            mqttTopic: `devices/${deviceId}/telemetry`,
+          });
+          this.logger.debug(`📝 Telemetry log saved for ${deviceId}`);
+        } catch (logError) {
+          this.logger.error(`❌ Failed to save telemetry log: ${logError.message}`);
+        }
       } catch (error) {
         this.logger.error(`❌ Failed to save telemetry to DB for ${deviceId}: ${error.message}`);
       }

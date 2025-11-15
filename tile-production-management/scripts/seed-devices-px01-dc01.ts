@@ -1,3 +1,4 @@
+
 /**
  * Script tạo devices cho Phân xưởng 1 (PX-01), Dây chuyền 1 (DC-01)
  * Chạy script: npx ts-node scripts/seed-devices-px01-dc01.ts
@@ -63,7 +64,7 @@ async function seedDevices() {
     port: parseInt(process.env.DB_PORT || '5450'),
     username: process.env.DB_USERNAME || 'vicenza',
     password: process.env.DB_PASSWORD || 'vicenza123',
-    database: process.env.DB_NAME || 'tile_production',
+    database: process.env.DB_NAME || 'brick-counter-dev',
     entities: ['src/**/*.entity{.ts,.js}'],
     synchronize: false,
   });
@@ -150,9 +151,9 @@ async function seedDevices() {
 
       // Tạo device mới
       await dataSource.query(
-        `INSERT INTO devices (name, type, serial_number, status, "positionId", installation_date) 
-         VALUES ($1, $2, $3, 'online', $4, CURRENT_DATE)`,
-        [deviceData.name, deviceData.type, deviceData.serial_number, positionId]
+        `INSERT INTO devices ("deviceId", name, type, serial_number, status, "positionId", installation_date) 
+         VALUES ($1, $2, $3, $4, 'online', $5, CURRENT_DATE)`,
+        [deviceData.deviceId, deviceData.name, deviceData.type, deviceData.serial_number, positionId]
       );
 
       console.log(`      ✓ Created device: ${deviceData.deviceId}\n`);
