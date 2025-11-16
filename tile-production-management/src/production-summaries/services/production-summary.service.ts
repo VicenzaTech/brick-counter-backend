@@ -221,7 +221,7 @@ export class ProductionSummaryService {
       for (const result of results) {
         logContent += `   - ${result.deviceId}:\n`;
         logContent += `     → Sản xuất: ${result.totalCount} viên\n`;
-        logContent += `     → Lỗi: ${result.totalErrCount} viên (${result.errorRate.toFixed(2)}%)\n`;
+        logContent += `     → Lỗi: ${result.totalErrCount} viên (${(result.errorRate || 0).toFixed(2)}%)\n`;
         logContent += `     → Số logs: ${result.messageCount}\n`;
       }
       
@@ -300,7 +300,7 @@ export class ProductionSummaryService {
         logContent += `     → Ca ngày: ${result.dayShiftCount} viên\n`;
         logContent += `     → Ca đêm: ${result.nightShiftCount} viên\n`;
         logContent += `     → Tổng: ${result.totalCount} viên\n`;
-        logContent += `     → Lỗi: ${result.totalErrCount} viên (${result.errorRate.toFixed(2)}%)\n`;
+        logContent += `     → Lỗi: ${result.totalErrCount} viên (${(result.errorRate || 0).toFixed(2)}%)\n`;
       }
       
       const totalProduction = results.reduce((sum, r) => sum + r.totalCount, 0);
@@ -711,5 +711,266 @@ export class ProductionSummaryService {
     const summary = await this.closeDay(deviceId, summaryDate);
     summary.closedBy = closedBy;
     return this.dailySummaryRepository.save(summary);
+  }
+
+  /**
+   * Cron job: Backup sản lượng mỗi giờ
+   * Chạy vào phút 0 mỗi giờ (00:00, 01:00, 02:00, ...)
+   * Lưu snapshot của tất cả dữ liệu sản lượng vào file JSON
+   */
+  @Cron('0 * * * *') // Mỗi giờ đúng
+  async handleHourlyBackup() {
+    const now = new Date();
+    const backupDir = path.join(process.cwd(), 'backups', 'production');
+    const dateFolder = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const hourlyFolder = path.join(backupDir, dateFolder);
+    
+    // Tạo thư mục nếu chưa có
+    if (!fs.existsSync(hourlyFolder)) {
+      fs.mkdirSync(hourlyFolder, { recursive: true });
+    }
+    
+    const timestamp = now.toISOString().replace(/:/g, '-').split('.')[0]; // YYYY-MM-DDTHH-mm-ss
+    const backupFile = path.join(hourlyFolder, `backup_${timestamp}.json`);
+    
+    try {
+      this.logger.log(`🔄 Starting hourly backup at ${now.toISOString()}`);
+      
+      // Lấy tất cả dữ liệu cần backup
+      const [shiftSummaries, dailySummaries, telemetryLogs] = await Promise.all([
+        this.shiftSummaryRepository.find({
+          order: { shiftDate: 'DESC', shiftType: 'ASC' },
+          take: 100, // Lấy 100 records gần nhất
+        }),
+        this.dailySummaryRepository.find({
+          order: { summaryDate: 'DESC' },
+          take: 30, // Lấy 30 ngày gần nhất
+        }),
+        // Lấy telemetry logs của 24h gần nhất
+        this.telemetryLogRepository
+          .createQueryBuilder('log')
+          .where('log.recordedAt >= :yesterday', { 
+            yesterday: new Date(now.getTime() - 24 * 60 * 60 * 1000) 
+          })
+          .orderBy('log.recordedAt', 'DESC')
+          .getMany(),
+      ]);
+      
+      const backupData = {
+        metadata: {
+          backupTime: now.toISOString(),
+          version: '1.0',
+          recordCounts: {
+            shiftSummaries: shiftSummaries.length,
+            dailySummaries: dailySummaries.length,
+            telemetryLogs: telemetryLogs.length,
+          },
+        },
+        data: {
+          shiftSummaries,
+          dailySummaries,
+          telemetryLogs,
+        },
+      };
+      
+      // Ghi file backup
+      fs.writeFileSync(backupFile, JSON.stringify(backupData, null, 2));
+      
+      const fileSizeKB = (fs.statSync(backupFile).size / 1024).toFixed(2);
+      this.logger.log(`✅ Hourly backup completed: ${backupFile} (${fileSizeKB} KB)`);
+      
+      // Cleanup backup cũ (xóa folder > 30 ngày)
+      await this.cleanupOldBackups(backupDir, 30);
+      
+    } catch (error) {
+      this.logger.error(`❌ Hourly backup failed: ${error.message}`);
+      this.logger.error(error.stack);
+    }
+  }
+
+  /**
+   * Cron job: Archive backup hàng ngày
+   * Chạy vào 23:59 mỗi ngày
+   * Nén tất cả backup của ngày hiện tại thành 1 file .json duy nhất
+   */
+  @Cron('59 23 * * *') // 23:59 mỗi ngày
+  async handleDailyArchive() {
+    const now = new Date();
+    const backupDir = path.join(process.cwd(), 'backups', 'production');
+    const archiveDir = path.join(process.cwd(), 'backups', 'archives');
+    const dateFolder = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dailyFolder = path.join(backupDir, dateFolder);
+    
+    if (!fs.existsSync(dailyFolder)) {
+      this.logger.warn(`⚠️ No backup folder found for ${dateFolder}`);
+      return;
+    }
+    
+    // Tạo thư mục archive nếu chưa có
+    if (!fs.existsSync(archiveDir)) {
+      fs.mkdirSync(archiveDir, { recursive: true });
+    }
+    
+    try {
+      this.logger.log(`📦 Creating daily archive for ${dateFolder}`);
+      
+      // Lấy tất cả dữ liệu của ngày hôm nay
+      const [shiftSummaries, dailySummary] = await Promise.all([
+        this.shiftSummaryRepository.find({
+          where: { shiftDate: dateFolder },
+        }),
+        this.dailySummaryRepository.findOne({
+          where: { summaryDate: dateFolder },
+        }),
+      ]);
+      
+      const archiveData = {
+        metadata: {
+          archiveDate: dateFolder,
+          archivedAt: now.toISOString(),
+          version: '1.0',
+        },
+        summary: {
+          date: dateFolder,
+          shifts: shiftSummaries.length,
+          dailySummary: dailySummary || null,
+        },
+        data: {
+          shiftSummaries,
+          dailySummary,
+        },
+      };
+      
+      const archiveFile = path.join(archiveDir, `archive_${dateFolder}.json`);
+      fs.writeFileSync(archiveFile, JSON.stringify(archiveData, null, 2));
+      
+      const fileSizeKB = (fs.statSync(archiveFile).size / 1024).toFixed(2);
+      this.logger.log(`✅ Daily archive created: ${archiveFile} (${fileSizeKB} KB)`);
+      
+      // Xóa folder backup hourly sau khi đã archive
+      if (fs.existsSync(dailyFolder)) {
+        const files = fs.readdirSync(dailyFolder);
+        files.forEach(file => fs.unlinkSync(path.join(dailyFolder, file)));
+        fs.rmdirSync(dailyFolder);
+        this.logger.log(`🗑️ Cleaned up hourly backups for ${dateFolder}`);
+      }
+      
+    } catch (error) {
+      this.logger.error(`❌ Daily archive failed: ${error.message}`);
+      this.logger.error(error.stack);
+    }
+  }
+
+  /**
+   * Xóa backup cũ hơn số ngày chỉ định
+   */
+  private async cleanupOldBackups(backupDir: string, retentionDays: number): Promise<void> {
+    try {
+      if (!fs.existsSync(backupDir)) {
+        return;
+      }
+      
+      const now = new Date();
+      const cutoffDate = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
+      
+      const folders = fs.readdirSync(backupDir);
+      let deletedCount = 0;
+      
+      for (const folder of folders) {
+        const folderPath = path.join(backupDir, folder);
+        const stats = fs.statSync(folderPath);
+        
+        if (stats.isDirectory() && folder.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const folderDate = new Date(folder);
+          
+          if (folderDate < cutoffDate) {
+            // Xóa tất cả files trong folder
+            const files = fs.readdirSync(folderPath);
+            files.forEach(file => fs.unlinkSync(path.join(folderPath, file)));
+            fs.rmdirSync(folderPath);
+            deletedCount++;
+          }
+        }
+      }
+      
+      if (deletedCount > 0) {
+        this.logger.log(`🗑️ Cleaned up ${deletedCount} old backup folders (older than ${retentionDays} days)`);
+      }
+    } catch (error) {
+      this.logger.error(`❌ Cleanup old backups failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Manual: Restore dữ liệu từ backup file
+   */
+  async restoreFromBackup(backupFilePath: string): Promise<{
+    success: boolean;
+    message: string;
+    restored: {
+      shiftSummaries: number;
+      dailySummaries: number;
+      telemetryLogs: number;
+    };
+  }> {
+    try {
+      this.logger.log(`🔄 Restoring from backup: ${backupFilePath}`);
+      
+      if (!fs.existsSync(backupFilePath)) {
+        throw new Error('Backup file not found');
+      }
+      
+      const backupContent = fs.readFileSync(backupFilePath, 'utf-8');
+      const backupData = JSON.parse(backupContent);
+      
+      let restoredCounts = {
+        shiftSummaries: 0,
+        dailySummaries: 0,
+        telemetryLogs: 0,
+      };
+      
+      // Restore shift summaries
+      if (backupData.data?.shiftSummaries) {
+        for (const summary of backupData.data.shiftSummaries) {
+          await this.shiftSummaryRepository.save(summary);
+          restoredCounts.shiftSummaries++;
+        }
+      }
+      
+      // Restore daily summaries
+      if (backupData.data?.dailySummaries) {
+        for (const summary of backupData.data.dailySummaries) {
+          await this.dailySummaryRepository.save(summary);
+          restoredCounts.dailySummaries++;
+        }
+      }
+      
+      // Restore telemetry logs
+      if (backupData.data?.telemetryLogs) {
+        for (const log of backupData.data.telemetryLogs) {
+          await this.telemetryLogRepository.save(log);
+          restoredCounts.telemetryLogs++;
+        }
+      }
+      
+      this.logger.log(`✅ Restore completed: ${JSON.stringify(restoredCounts)}`);
+      
+      return {
+        success: true,
+        message: 'Data restored successfully',
+        restored: restoredCounts,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Restore failed: ${error.message}`);
+      return {
+        success: false,
+        message: error.message,
+        restored: {
+          shiftSummaries: 0,
+          dailySummaries: 0,
+          telemetryLogs: 0,
+        },
+      };
+    }
   }
 }

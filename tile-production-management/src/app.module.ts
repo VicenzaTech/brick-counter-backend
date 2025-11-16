@@ -61,7 +61,7 @@ import { WebSocketModule } from './websocket/websocket.module';
         ProductionMetric,
         QuotaTarget,
       ],
-      synchronize: false, // false for production
+      synchronize: true, // Set to true to auto-create tables (development/staging only)
     }),
     // MQTT and WebSocket modules
     MqttModule,
