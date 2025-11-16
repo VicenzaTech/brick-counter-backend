@@ -127,8 +127,7 @@ export class ProductionMetricsService {
 
     // Create entity
     const metric = this.metricsRepository.create({
-      timestamp: createDto.timestamp,
-      shift: createDto.shift,
+      recordDate: createDto.recordDate,
       sl_ep: createDto.sl_ep,
       sl_truoc_lo: createDto.sl_truoc_lo,
       sl_sau_lo: createDto.sl_sau_lo,
@@ -156,18 +155,17 @@ export class ProductionMetricsService {
       if (query.brickTypeId) {
         whereConditions.brickType = { id: query.brickTypeId };
       }
-      if (query.shift) {
-        whereConditions.shift = query.shift;
-      }
       if (query.startDate && query.endDate) {
-        whereConditions.timestamp = Between(query.startDate, query.endDate);
+        const startDateStr = new Date(query.startDate).toISOString().split('T')[0];
+        const endDateStr = new Date(query.endDate).toISOString().split('T')[0];
+        whereConditions.recordDate = Between(startDateStr, endDateStr);
       }
     }
 
     return this.metricsRepository.find({
       where: whereConditions,
       relations: ['productionLine', 'brickType'],
-      order: { timestamp: 'DESC' },
+      order: { recordDate: 'DESC' },
     });
   }
 
@@ -249,27 +247,10 @@ export class ProductionMetricsService {
     if (avgHpHt > 2) alerts.push('Hao phí hoàn thiện vượt ngưỡng');
 
     // Trend data
-    const trendData = metrics.slice(0, 20).map(m => ({
-      timestamp: m.timestamp,
+    const trendData = metrics.slice(0, 30).map(m => ({
+      date: m.recordDate,
       ty_le_hao_phi: Number(m.ty_le_tong_hao_phi),
       hieu_suat: Number(m.hieu_suat_thanh_pham),
-    }));
-
-    // Shift comparison
-    const shiftGroups = metrics.reduce((acc, m) => {
-      const shift = m.shift || 'Unknown';
-      if (!acc[shift]) {
-        acc[shift] = [];
-      }
-      acc[shift].push(m);
-      return acc;
-    }, {} as Record<string, ProductionMetric[]>);
-
-    const shiftComparison = Object.entries(shiftGroups).map(([shift, data]) => ({
-      shift,
-      san_luong: data.reduce((sum, m) => sum + Number(m.sl_truoc_dong_hop), 0),
-      hieu_suat: data.reduce((sum, m) => sum + Number(m.hieu_suat_thanh_pham), 0) / data.length,
-      ty_le_hao_phi: data.reduce((sum, m) => sum + Number(m.ty_le_tong_hao_phi), 0) / data.length,
     }));
 
     return {
@@ -300,7 +281,7 @@ export class ProductionMetricsService {
       },
       trend_data: trendData,
       alerts,
-      shift_comparison: shiftComparison,
+      shift_comparison: [], // Removed - no longer using shifts
     };
   }
 

@@ -57,8 +57,7 @@ describe('ProductionMetricsService', () => {
   describe('create', () => {
     it('should calculate metrics correctly and create a new metric', async () => {
       const createDto = {
-        timestamp: new Date(),
-        shift: 'A',
+        recordDate: '2025-11-16',
         sl_ep: 10000,
         sl_truoc_lo: 9800,
         sl_sau_lo: 9500,
@@ -92,8 +91,7 @@ describe('ProductionMetricsService', () => {
       // HP_Moc = SL_Ep - SL_TruocLo = 10000 - 9800 = 200
       // TyLe_HP_Moc = (200 / 10000) * 100 = 2%
       const createDto = {
-        timestamp: new Date(),
-        shift: 'A',
+        recordDate: '2025-11-16',
         sl_ep: 10000,
         sl_truoc_lo: 9800,
         sl_sau_lo: 9500,
@@ -124,8 +122,7 @@ describe('ProductionMetricsService', () => {
     it('should set canh_bao_hp_moc when threshold exceeded', async () => {
       // HP_Moc = 250, Ty_le = 2.5% > 2% threshold
       const createDto = {
-        timestamp: new Date(),
-        shift: 'A',
+        recordDate: '2025-11-16',
         sl_ep: 10000,
         sl_truoc_lo: 9750, // Creates 2.5% waste
         sl_sau_lo: 9500,
@@ -159,8 +156,7 @@ describe('ProductionMetricsService', () => {
       const mockMetrics = [
         {
           id: 1,
-          timestamp: new Date(),
-          shift: 'A',
+          recordDate: '2025-11-15',
           ty_le_hp_moc: 2,
           ty_le_hp_lo: 3,
           ty_le_hp_tm: 1.5,
@@ -171,8 +167,7 @@ describe('ProductionMetricsService', () => {
         },
         {
           id: 2,
-          timestamp: new Date(),
-          shift: 'B',
+          recordDate: '2025-11-16',
           ty_le_hp_moc: 1.8,
           ty_le_hp_lo: 2.8,
           ty_le_hp_tm: 1.6,
@@ -203,8 +198,7 @@ describe('ProductionMetricsService', () => {
       const mockMetrics = [
         {
           id: 1,
-          timestamp: new Date(),
-          shift: 'A',
+          recordDate: '2025-11-16',
           ty_le_hp_moc: 1.5, // Good (< 80% of 2%)
           ty_le_hp_lo: 2.5, // Warning (between 80-100% of 3%)
           ty_le_hp_tm: 2.5, // Danger (> 100% of 2%)
@@ -234,8 +228,7 @@ describe('ProductionMetricsService', () => {
       const mockMetrics = [
         {
           id: 1,
-          timestamp: new Date(),
-          shift: 'A',
+          recordDate: '2025-11-16',
           ty_le_hp_moc: 2.5, // Exceeds 2%
           ty_le_hp_lo: 3.5, // Exceeds 3%
           ty_le_hp_tm: 1.5,

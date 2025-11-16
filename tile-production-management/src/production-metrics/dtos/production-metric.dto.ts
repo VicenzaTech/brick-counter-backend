@@ -1,6 +1,5 @@
 export class CreateProductionMetricDto {
-  timestamp: Date;
-  shift?: string;
+  recordDate: string; // YYYY-MM-DD
   sl_ep: number;
   sl_truoc_lo: number;
   sl_sau_lo: number;
@@ -12,8 +11,7 @@ export class CreateProductionMetricDto {
 }
 
 export class UpdateProductionMetricDto {
-  timestamp?: Date;
-  shift?: string;
+  recordDate?: string; // YYYY-MM-DD
   sl_ep?: number;
   sl_truoc_lo?: number;
   sl_sau_lo?: number;
@@ -26,10 +24,9 @@ export class UpdateProductionMetricDto {
 
 export class ProductionMetricResponseDto {
   id: number;
-  timestamp: Date;
-  shift: string;
+  recordDate: string;
   
-  // Sensor data
+  // Sensor data (daily totals)
   sl_ep: number;
   sl_truoc_lo: number;
   sl_sau_lo: number;
@@ -68,11 +65,10 @@ export class ProductionMetricResponseDto {
 }
 
 export class MetricsAnalyticsDto {
-  startDate: Date;
-  endDate: Date;
+  startDate?: Date;
+  endDate?: Date;
   productionLineId?: number;
   brickTypeId?: number;
-  shift?: string;
 }
 
 export class MetricsSummaryDto {
@@ -107,7 +103,7 @@ export class MetricsSummaryDto {
   
   // Xu hướng
   trend_data: Array<{
-    timestamp: Date;
+    date: string; // YYYY-MM-DD
     ty_le_hao_phi: number;
     hieu_suat: number;
   }>;
@@ -115,13 +111,8 @@ export class MetricsSummaryDto {
   // Cảnh báo
   alerts: string[];
   
-  // So sánh ca
-  shift_comparison: Array<{
-    shift: string;
-    san_luong: number;
-    hieu_suat: number;
-    ty_le_hao_phi: number;
-  }>;
+  // So sánh ca (removed - no longer using shifts)
+  shift_comparison: Array<any>;
 }
 
 export class SankeyDataDto {

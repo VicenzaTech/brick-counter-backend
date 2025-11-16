@@ -4,16 +4,20 @@
  */
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { Redis } from 'ioredis';
 import { MqttService } from './mqtt.service';
 import { MqttController } from './mqtt.controller';
+import { DeviceCommandController } from './controllers/device-command.controller';
+import { DeviceCommandService } from './services/device-command.service';
 import { MessageQueueService } from '../common/queue/message-queue.service';
 import { BoundedCacheService } from '../common/cache/bounded-cache.service';
+import { ProductionLine } from '../production-lines/entities/production-line.entity';
 
 @Global()
 @Module({
-  imports: [ConfigModule],
-  controllers: [MqttController],
+  imports: [ConfigModule, TypeOrmModule.forFeature([ProductionLine])],
+  controllers: [MqttController, DeviceCommandController],
   providers: [
     // Redis client provider
     {
@@ -55,7 +59,8 @@ import { BoundedCacheService } from '../common/cache/bounded-cache.service';
     },
     MessageQueueService,
     MqttService,
+    DeviceCommandService,
   ],
-  exports: [MqttService, MessageQueueService, BoundedCacheService, 'REDIS_CLIENT'],
+  exports: [MqttService, MessageQueueService, BoundedCacheService, 'REDIS_CLIENT', DeviceCommandService],
 })
 export class MqttModule {}

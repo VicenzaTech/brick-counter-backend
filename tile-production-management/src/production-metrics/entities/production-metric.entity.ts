@@ -7,13 +7,10 @@ export class ProductionMetric {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'timestamp' })
-  timestamp: Date;
+  @Column({ type: 'date', unique: false })
+  recordDate: string; // Ngày ghi nhận (YYYY-MM-DD)
 
-  @Column({ nullable: true })
-  shift: string; // Ca A, B, C
-
-  // Dữ liệu đầu vào từ cảm biến
+  // Dữ liệu đầu vào từ cảm biến (tổng hợp cả ngày)
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   sl_ep: number; // Sau máy ép (SAU-ME-01 + SAU-ME-02)
 
