@@ -22,6 +22,14 @@ import { ProductionMetricsModule } from './production-metrics/production-metrics
 import { QuotaTargetsModule } from './quota-targets/quota-targets.module';
 import { MqttModule } from './mqtt/mqtt.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { HashModule } from './common/hash/hash.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { SessionModule } from './session/session.module';
+import { RedisModule } from './common/redis/redis.module';
+import { User } from './users/entities/user.entity';
+import { Role } from './users/entities/role.entity';
+import { Permission } from './users/entities/permission.entity';
 
 @Module({
   imports: [
@@ -50,8 +58,11 @@ import { WebSocketModule } from './websocket/websocket.module';
         MaintenanceLog,
         ProductionMetric,
         QuotaTarget,
+        User,
+        Role,
+        Permission
       ],
-      synchronize: true, // false for production
+      synchronize: false, // false for production
     }),
     // MQTT and WebSocket modules
     MqttModule,
@@ -65,6 +76,12 @@ import { WebSocketModule } from './websocket/websocket.module';
     BrickTypesModule,
     ProductionMetricsModule,
     QuotaTargetsModule,
+    UsersModule,
+    HashModule,
+    AuthModule,
+    SessionModule,
+    RedisModule,
   ],
+  providers: [],
 })
 export class AppModule {}

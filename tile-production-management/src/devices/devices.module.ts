@@ -7,11 +7,12 @@ import { Device } from './entities/device.entity';
 import { DeviceTelemetry } from './entities/device-telemetry.entity';
 import { Position } from '../positions/entities/position.entity';
 import { WebSocketModule } from '../websocket/websocket.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Device, DeviceTelemetry, Position]),
-    WebSocketModule,
+    WebSocketModule, AuthModule
   ],
   providers: [DevicesService, DevicesMqttHandler],
   controllers: [DevicesController],
