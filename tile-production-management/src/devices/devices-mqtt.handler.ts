@@ -153,7 +153,8 @@ export class DevicesMqttHandler implements OnModuleInit {
       // Lưu vào database (UPSERT)
       try {
         let telemetry = await this.telemetryRepository.findOne({ 
-          where: { deviceId } 
+          where: { deviceId },
+          relations: ['position', 'position.productionLine']
         });
         
         if (!telemetry) {
@@ -161,6 +162,13 @@ export class DevicesMqttHandler implements OnModuleInit {
           telemetry = this.telemetryRepository.create({ deviceId });
         } else {
           this.logger.log(`🔄 Updating existing telemetry record for ${deviceId}`);
+          
+          // Set device line mapping cho file logging
+          if (telemetry.position?.productionLine) {
+            const lineName = telemetry.position.productionLine.name;
+            this.mqttService.setDeviceLineMapping(deviceId, lineName);
+            this.logger.debug(`📍 Set device ${deviceId} -> line ${lineName}`);
+          }
         }
         
         telemetry.count = count;

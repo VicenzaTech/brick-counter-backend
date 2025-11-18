@@ -37,7 +37,7 @@ services:
       JWT_ACCESS_EXPIRES: 10s
 
       JWT_REFRESH_SECRET: b03f9662a672b511ada4d78a195ac355fcb435fdff59f9293fabe09ae38fe97b82a409a4de5e9aa47ef7c9dbb601436cc5f33e12f597518318e26716052cd8e4
-      JWT_REFRESH_EXPIRES: 1m
+      JWT_REFRESH_EXPIRES: 1d
 
     ports:
       - '5555:5555'
@@ -98,6 +98,32 @@ services:
       - '9001:9001'
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  python-analytics:
+    build:
+      context: ./python-analytics
+      dockerfile: Dockerfile
+    container_name: tile-analytics
+    restart: unless-stopped
+    environment:
+      LOG_DIR: /app/logs
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MQTT_BROKER: mosquitto
+      MQTT_PORT: 1883
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: brick-counter-dev
+      DB_USER: admin
+      DB_PASSWORD: 123456
+      CALCULATION_INTERVAL: 10
+      HISTORY_WINDOW: 600
+    volumes:
+      - ./tile-production-management/logs:/app/logs:ro
+    depends_on:
+      - redis
+      - mosquitto
+      - postgres
 
 volumes:
   redis-data:

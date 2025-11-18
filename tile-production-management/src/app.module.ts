@@ -35,6 +35,7 @@ import { RedisModule } from './common/redis/redis.module';
 import { User } from './users/entities/user.entity';
 import { Role } from './users/entities/role.entity';
 import { Permission } from './users/entities/permission.entity';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { Permission } from './users/entities/permission.entity';
     AuthModule,
     SessionModule,
     RedisModule,
+    AnalyticsModule,
   ],
   providers: [],
 })
