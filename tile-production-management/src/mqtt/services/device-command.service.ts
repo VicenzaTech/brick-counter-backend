@@ -261,4 +261,131 @@ export class DeviceCommandService {
     // Standard workflow has 8 devices per line
     return 8;
   }
+
+  /**
+   * Configure device settings (e.g., telemetry interval)
+   * @param deviceId Device ID
+   * @param interval Telemetry interval in seconds (5, 10, 15, 30, 60)
+   */
+  async configureDevice(deviceId: string, interval: number): Promise<CommandResponse> {
+    try {
+      // Validate interval
+      const validIntervals = [5, 10, 15, 30, 60];
+      if (!validIntervals.includes(interval)) {
+        return {
+          success: false,
+          message: `Interval không hợp lệ. Chỉ chấp nhận: ${validIntervals.join(', ')} giây`,
+          commandId: '',
+          topic: '',
+        };
+      }
+
+      const timestamp = new Date();
+      const formattedTime = timestamp.toISOString().slice(0, 19); // YYYY-MM-DDTHH:MM:SS
+
+      const command = {
+        ts: formattedTime,
+        value: interval.toString(),
+      };
+
+      const topic = `server/all/sending_time`;
+
+      this.mqttService.publishMessage(topic, command, {
+        qos: 1,
+        retain: false,
+      });
+
+      this.logger.log(`Config command sent to device ${deviceId}, interval: ${interval}s`);
+
+      return {
+        success: true,
+        message: `Đã gửi lệnh config đến thiết bị ${deviceId} - Interval: ${interval}s`,
+        commandId: timestamp.getTime().toString(),
+        topic,
+        affectedDevices: 1,
+      };
+    } catch (error) {
+      this.logger.error(`Error configuring device ${deviceId}:`, error);
+      return {
+        success: false,
+        message: `Lỗi khi gửi lệnh config: ${error.message}`,
+        commandId: '',
+        topic: '',
+      };
+    }
+  }
+
+  /**
+   * Configure all devices on a production line
+   * @param lineId Production line ID (e.g., 1, 2, 6)
+   * @param interval Telemetry interval in seconds (5, 10, 15, 30, 60)
+   */
+  async configureProductionLine(lineId: number, interval: number): Promise<CommandResponse> {
+    try {
+      // Validate production line exists
+      const line = await this.productionLineRepo.findOne({
+        where: { id: lineId },
+      });
+
+      if (!line) {
+        return {
+          success: false,
+          message: `Không tìm thấy dây chuyền ${lineId}`,
+          commandId: '',
+          topic: '',
+        };
+      }
+
+      // Validate interval
+      const validIntervals = [5, 10, 15, 30, 60];
+      if (!validIntervals.includes(interval)) {
+        return {
+          success: false,
+          message: `Interval không hợp lệ. Chỉ chấp nhận: ${validIntervals.join(', ')} giây`,
+          commandId: '',
+          topic: '',
+        };
+      }
+
+      // Generate timestamp
+      const timestamp = new Date();
+      const formattedTime = timestamp.toISOString().slice(0, 19); // YYYY-MM-DDTHH:MM:SS
+
+      const command = {
+        ts: formattedTime,
+        value: interval.toString(),
+      };
+
+      // Topic for entire production line (broadcast to all devices)
+      const topic = `server/all/sending_time`;
+
+      // Publish command to MQTT
+      this.logger.log(`Publishing config command to ${topic}, interval: ${interval}s`);
+      this.logger.debug(`Command payload: ${JSON.stringify(command)}`);
+
+      this.mqttService.publishMessage(topic, command, {
+        qos: 1,
+        retain: false,
+      });
+
+      const deviceCount = this.getDeviceCountForLine(lineId);
+      this.logger.log(`Config command sent to ${deviceCount} devices on line ${lineId}`);
+
+      return {
+        success: true,
+        message: `Đã gửi lệnh config đến ${deviceCount} thiết bị trên dây chuyền ${lineId} - Interval: ${interval}s`,
+        commandId: timestamp.getTime().toString(),
+        topic,
+        affectedDevices: deviceCount,
+      };
+    } catch (error) {
+      this.logger.error(`Error configuring production line ${lineId}:`, error);
+      return {
+        success: false,
+        message: `Lỗi khi gửi lệnh config: ${error.message}`,
+        commandId: '',
+        topic: '',
+      };
+    }
+  }
 }

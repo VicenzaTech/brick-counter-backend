@@ -56,4 +56,32 @@ export class DeviceCommandController {
     this.logger.warn(`REST API: Emergency stop for line ${lineId}`);
     return this.deviceCommandService.emergencyStopLine(lineId);
   }
+
+  /**
+   * Configure device settings
+   * POST /mqtt/device-command/config-device/:deviceId
+   * Body: { interval: number } - Telemetry interval in seconds (5, 10, 15, 30, 60)
+   */
+  @Post('config-device/:deviceId')
+  async configDevice(
+    @Param('deviceId') deviceId: string,
+    @Body('interval', ParseIntPipe) interval: number,
+  ): Promise<CommandResponse> {
+    this.logger.log(`REST API: Configure device ${deviceId}, interval: ${interval}s`);
+    return this.deviceCommandService.configureDevice(deviceId, interval);
+  }
+
+  /**
+   * Configure all devices on a production line
+   * POST /mqtt/device-command/config-line/:lineId
+   * Body: { interval: number } - Telemetry interval in seconds (5, 10, 15, 30, 60)
+   */
+  @Post('config-line/:lineId')
+  async configLine(
+    @Param('lineId', ParseIntPipe) lineId: number,
+    @Body('interval', ParseIntPipe) interval: number,
+  ): Promise<CommandResponse> {
+    this.logger.log(`REST API: Configure production line ${lineId}, interval: ${interval}s`);
+    return this.deviceCommandService.configureProductionLine(lineId, interval);
+  }
 }
