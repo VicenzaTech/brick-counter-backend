@@ -10,6 +10,8 @@ import * as mqtt from 'mqtt';
 import { MqttClient } from 'mqtt';
 import { MessageQueueService } from '../common/queue/message-queue.service';
 import { BoundedCacheService } from '../common/cache/bounded-cache.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface MqttMessage {
   deviceId?: string;
@@ -54,6 +56,9 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     string,
     (deviceId: string, data: MqttMessage) => Promise<void>
   > = new Map();
+
+  // Cache device -> production line mapping
+  private deviceLineCache: Map<string, string> = new Map();
 
   constructor(
     private readonly configService: ConfigService,
@@ -254,6 +259,65 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Ghi log telemetry vào file theo ngày
+   * Cấu trúc: logs/{YYYY-MM-DD}/{production-line}/{device}/{deviceId}.txt
+   */
+  private async writeDeviceLog(
+    deviceId: string,
+    messageData: MqttMessage,
+    timestamp: number,
+  ): Promise<void> {
+    try {
+      // Lấy ngày hiện tại (YYYY-MM-DD)
+      const date = new Date(timestamp);
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Parse deviceId để lấy thông tin (ví dụ: SAU-ME-01)
+      const deviceParts = deviceId.split('-');
+      let deviceName = deviceId.toLowerCase();
+      
+      // Tạo tên thiết bị
+      if (deviceParts.length >= 2) {
+        const position = deviceParts.slice(0, -1).join('-').toLowerCase(); // sau-me, truoc-ln, ...
+        deviceName = position;
+      }
+      
+      // Lấy production line từ cache (được set bởi telemetry handler)
+      const productionLine = this.deviceLineCache.get(deviceId) || 'DC-01';
+      
+      // Tạo đường dẫn thư mục: logs/{date}/{production-line}/{device}
+      const logsDir = path.join(process.cwd(), 'logs', dateStr, productionLine, deviceName);
+      
+      // Tạo thư mục nếu chưa tồn tại
+      if (!fs.existsSync(logsDir)) {
+        fs.mkdirSync(logsDir, { recursive: true });
+      }
+      
+      // Tên file: {deviceId}.txt (ví dụ: sau-me-01.txt)
+      const logFilePath = path.join(logsDir, `${deviceId.toLowerCase()}.txt`);
+      
+      // Format log entry
+      const count = messageData.metrics?.count ?? 'N/A';
+      const timestampStr = date.toISOString();
+      const logEntry = `[${timestampStr}] Count: ${count}\n`;
+      
+      // Ghi vào file (append mode)
+      fs.appendFileSync(logFilePath, logEntry, 'utf-8');
+      
+      this.logger.debug(`📝 Logged to file: ${logFilePath}`);
+    } catch (error) {
+      this.logger.error(`❌ Error writing device log: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * Set device to production line mapping (được gọi từ telemetry handler)
+   */
+  setDeviceLineMapping(deviceId: string, lineCode: string): void {
+    this.deviceLineCache.set(deviceId, lineCode);
+  }
+
+  /**
    * Dispatch message đến các handlers với message queue
    */
   private async dispatchToHandlers(
@@ -264,6 +328,9 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   ): Promise<void> {
     // Xử lý telemetry messages
     if (messageType === 'telemetry') {
+      // GHI LOG VÀO FILE
+      await this.writeDeviceLog(deviceId, messageData, timestamp);
+      
       this.logger.log(`🔄 Dispatching telemetry for device: ${deviceId} to ${this.telemetryHandlers.size} handlers`);
       // Process với tất cả telemetry handlers
       for (const [handlerName, handler] of this.telemetryHandlers) {

@@ -20,6 +20,7 @@ build/
 .env.*.local
 *.env
 !.env.example
+python-analytics/.env
 
 # IDE
 .vscode/
@@ -31,7 +32,11 @@ build/
 
 # Logs
 logs/
+**logs/
+**/logs/
 *.log
+tile-production-management/logs/
+python-analytics/logs/
 
 # Testing
 coverage/
