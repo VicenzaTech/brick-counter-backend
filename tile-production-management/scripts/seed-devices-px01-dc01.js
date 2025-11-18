@@ -83,7 +83,7 @@ async function seedDevices() {
   // Create database connection
   const dataSource = new DataSource({
     type: 'postgres',
-    host: process.env.DB_HOST || '192.168.221.4',
+    host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5450'),
     username: process.env.DB_USERNAME || 'admin',
     password: process.env.DB_PASSWORD || '123456',
