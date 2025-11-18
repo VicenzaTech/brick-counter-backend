@@ -102,10 +102,33 @@ async function seedProductionMetrics(days = 30) {
     // Get all brick types
     const brickTypesResult = await client.query(`SELECT id, name, description FROM brick_types ORDER BY id`);
     if (brickTypesResult.rows.length === 0) {
-      throw new Error('Không tìm thấy brick types!');
+      console.log('  ⚠️  Không tìm thấy brick types, sẽ tạo mới...');
+      
+      // Seed brick types if not exists
+      const brickTypesToCreate = [
+        { name: '300x600mm', description: 'Gạch ốp lát 300x600mm', unit: 'm²' },
+        { name: '400x800mm', description: 'Gạch ốp lát 400x800mm', unit: 'm²' },
+        { name: '600x600mm', description: 'Gạch ốp lát 600x600mm', unit: 'm²' },
+      ];
+      
+      for (const bt of brickTypesToCreate) {
+        await client.query(
+          `INSERT INTO brick_types (name, description, unit, specs) 
+           VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+          [bt.name, bt.description, bt.unit, JSON.stringify({ width: parseInt(bt.name), height: parseInt(bt.name.split('x')[1]) })]
+        );
+      }
+      
+      // Re-fetch brick types
+      const recheck = await client.query(`SELECT id, name, description FROM brick_types ORDER BY id`);
+      if (recheck.rows.length === 0) {
+        throw new Error('Không thể tạo brick types!');
+      }
+      brickTypesResult.rows = recheck.rows;
+      console.log(`  ✓ Đã tạo ${brickTypesResult.rows.length} loại gạch`);
+    } else {
+      console.log(`  → Tìm thấy ${brickTypesResult.rows.length} loại gạch`);
     }
-
-    console.log(`  → Tìm thấy ${brickTypesResult.rows.length} loại gạch`);
 
     // Generate data
     const sampleData = generateProductionData(days);

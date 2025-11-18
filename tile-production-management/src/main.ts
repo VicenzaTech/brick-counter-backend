@@ -181,6 +181,11 @@ async function bootstrap() {
 
     // App use CookieParser
     app.use(cookieParser())
+    
+    // Auto-seed devices on startup
+    const dataSource = app.get(DataSource);
+    await seedDevices(dataSource);
+    
     await app.listen(process.env.PORT ?? 5555);
 }
 bootstrap();

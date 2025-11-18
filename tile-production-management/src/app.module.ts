@@ -72,7 +72,7 @@ import { Permission } from './users/entities/permission.entity';
         Role,
         Permission
       ],
-      synchronize: true, // Set to true to auto-create tables (development/staging only)
+      synchronize: false, // Set to true to auto-create tables (development/staging only)
     }),
     // MQTT and WebSocket modules
     MqttModule,
