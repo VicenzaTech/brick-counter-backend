@@ -345,14 +345,14 @@ async function seedProductionData() {
           const xu_huong = xu_huong_options[randomInt(0, 2)];
 
           const existingMetric = await dataSource.query(
-            `SELECT id FROM production_metrics WHERE timestamp = $1 AND shift = $2 AND "productionLineId" = $3 AND "brickTypeId" = $4`,
-            [shiftStartAt, shiftName, productionLineId, brickType.id]
+            `SELECT id FROM production_metrics WHERE "recordDate" = $1 AND "productionLineId" = $2 AND "brickTypeId" = $3`,
+            [dateStr, productionLineId, brickType.id]
           );
 
           if (existingMetric.length === 0) {
             await dataSource.query(
               `INSERT INTO production_metrics (
-                timestamp, shift,
+                "recordDate",
                 sl_ep, sl_truoc_lo, sl_sau_lo, sl_truoc_mai, sl_sau_mai_canh, sl_truoc_dong_hop,
                 hp_moc, ty_le_hp_moc, hp_lo, ty_le_hp_lo, hp_tm, ty_le_hp_tm, hp_ht, ty_le_hp_ht,
                 tong_hao_phi, ty_le_tong_hao_phi,
@@ -361,10 +361,10 @@ async function seedProductionData() {
                 cong_doan_van_de, xu_huong, "productionLineId", "brickTypeId"
               ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-                $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30
+                $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
               )`,
               [
-                shiftStartAt, shiftName,
+                dateStr,
                 sl_ep, sl_truoc_lo, sl_sau_lo, sl_truoc_mai, sl_sau_mai_canh, sl_truoc_dong_hop,
                 hp_moc, ty_le_hp_moc, hp_lo, ty_le_hp_lo, hp_tm, ty_le_hp_tm, hp_ht, ty_le_hp_ht,
                 tong_hao_phi, ty_le_tong_hao_phi,
