@@ -59,6 +59,9 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
   // Cache device -> production line mapping
   private deviceLineCache: Map<string, string> = new Map();
+  
+  // Cache last count per device to detect resets
+  private lastCountCache: Map<string, number> = new Map();
 
   constructor(
     private readonly configService: ConfigService,
@@ -268,6 +271,11 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     timestamp: number,
   ): Promise<void> {
     try {
+      const currentCount = messageData.metrics?.count;
+      if (currentCount === undefined || currentCount === null) {
+        return; // Skip if no count data
+      }
+
       // Lấy ngày hiện tại (YYYY-MM-DD)
       const date = new Date(timestamp);
       const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -293,13 +301,49 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         fs.mkdirSync(logsDir, { recursive: true });
       }
       
-      // Tên file: {deviceId}.txt (ví dụ: sau-me-01.txt)
-      const logFilePath = path.join(logsDir, `${deviceId.toLowerCase()}.txt`);
+      // Kiểm tra nếu count bị reset (giảm xuống so với lần trước)
+      const lastCount = this.lastCountCache.get(deviceId);
+      let isReset = false;
+      
+      if (lastCount !== undefined && currentCount < lastCount) {
+        // Count giảm xuống = device bị reset
+        isReset = true;
+        this.logger.log(`🔄 Device ${deviceId} reset detected: ${lastCount} → ${currentCount}`);
+      }
+      
+      // Cập nhật cache
+      this.lastCountCache.set(deviceId, currentCount);
+      
+      // Tên file
+      let logFilePath: string;
+      
+      if (isReset) {
+        // Tạo file mới với timestamp khi reset
+        const timestampSuffix = date.toISOString().replace(/[-:]/g, '').split('.')[0]; // YYYYMMDDTHHmmss
+        logFilePath = path.join(logsDir, `${deviceId.toLowerCase()}_${timestampSuffix}.txt`);
+        this.logger.log(`📄 Creating new log file after reset: ${logFilePath}`);
+      } else {
+        // Tìm file mới nhất để append
+        const existingFiles = fs.existsSync(logsDir) 
+          ? fs.readdirSync(logsDir)
+              .filter(f => f.startsWith(deviceId.toLowerCase()) && f.endsWith('.txt'))
+              .sort()
+              .reverse()
+          : [];
+        
+        if (existingFiles.length > 0) {
+          logFilePath = path.join(logsDir, existingFiles[0]);
+        } else {
+          // File đầu tiên trong ngày
+          const timestampSuffix = date.toISOString().replace(/[-:]/g, '').split('.')[0];
+          logFilePath = path.join(logsDir, `${deviceId.toLowerCase()}_${timestampSuffix}.txt`);
+          this.logger.log(`📄 Creating first log file: ${logFilePath}`);
+        }
+      }
       
       // Format log entry
-      const count = messageData.metrics?.count ?? 'N/A';
       const timestampStr = date.toISOString();
-      const logEntry = `[${timestampStr}] Count: ${count}\n`;
+      const logEntry = `[${timestampStr}] Count: ${currentCount}\n`;
       
       // Ghi vào file (append mode)
       fs.appendFileSync(logFilePath, logEntry, 'utf-8');
