@@ -4,9 +4,10 @@ import { ProductionLinesController } from './production-lines.controller';
 import { ProductionLine } from './entities/production-line.entity';
 import { Workshop } from '../workshops/entities/workshop.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProductionLine, Workshop])],
+  imports: [TypeOrmModule.forFeature([ProductionLine, Workshop]), AuthModule],
   providers: [ProductionLinesService],
   controllers: [ProductionLinesController]
 })
