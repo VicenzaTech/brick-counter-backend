@@ -5,10 +5,12 @@ import { QuotaTargetsService } from './quota-targets.service';
 import { QuotaTarget } from './entities/quota-target.entity';
 import { BrickType } from '../brick-types/entities/brick-type.entity';
 import { ProductionMetric } from '../production-metrics/entities/production-metric.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([QuotaTarget, BrickType, ProductionMetric]),
+    AuthModule
   ],
   controllers: [QuotaTargetsController],
   providers: [QuotaTargetsService],

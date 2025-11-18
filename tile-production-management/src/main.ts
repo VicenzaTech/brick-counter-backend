@@ -167,22 +167,20 @@ async function seedDevices(dataSource: DataSource) {
   }
 }
 
+import cookieParser from 'cookie-parser'
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api');
-  
-  // Enable CORS for frontend
-  app.enableCors({
-    origin: 'http://localhost:3000',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-  });
-  
-  // Auto-seed devices on startup
-  const dataSource = app.get(DataSource);
-  await seedDevices(dataSource);
-  
-  await app.listen(process.env.PORT ?? 5555);
-  console.log(`🚀 Application is running on: http://localhost:${process.env.PORT ?? 5555}`);
+    const app = await NestFactory.create(AppModule);
+    app.setGlobalPrefix('api');
+
+    // Enable CORS for frontend
+    app.enableCors({
+        origin: 'http://localhost:3000',
+        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+        credentials: true,
+    });
+
+    // App use CookieParser
+    app.use(cookieParser())
+    await app.listen(process.env.PORT ?? 5555);
 }
 bootstrap();

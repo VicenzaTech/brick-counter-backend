@@ -1,65 +1,78 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  ParseIntPipe,
+    Controller,
+    Get,
+    Post,
+    Put,
+    Delete,
+    Body,
+    Param,
+    Query,
+    ParseIntPipe,
+    UseGuards,
 } from '@nestjs/common';
 import { QuotaTargetsService } from './quota-targets.service';
 import {
-  CreateQuotaTargetDto,
-  UpdateQuotaTargetDto,
-  QuotaComparisonDto,
+    CreateQuotaTargetDto,
+    UpdateQuotaTargetDto,
+    QuotaComparisonDto,
 } from './dtos/quota-target.dto';
+import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
+import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
+import { Permission } from 'src/auth/decorator/permission/permission.decorator';
+import { PERMISSIONS } from 'src/users/permission.constant';
 
 @Controller('quota-targets')
+@UseGuards(AuthGuard, PermissionGuard)
 export class QuotaTargetsController {
-  constructor(private readonly quotaService: QuotaTargetsService) {}
+    constructor(private readonly quotaService: QuotaTargetsService) { }
 
-  @Post()
-  create(@Body() createDto: CreateQuotaTargetDto) {
-    return this.quotaService.create(createDto);
-  }
+    @Post()
+    @Permission(PERMISSIONS.QUOTA_TARGET_CREATE)
+    create(@Body() createDto: CreateQuotaTargetDto) {
+        return this.quotaService.create(createDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.quotaService.findAll();
-  }
+    @Get()
+    @Permission(PERMISSIONS.QUOTA_TARGET_READ)
+    findAll() {
+        return this.quotaService.findAll();
+    }
 
-  @Get('active')
-  findActive() {
-    return this.quotaService.findActive();
-  }
+    @Get('active')
+    findActive() {
+        return this.quotaService.findActive();
+    }
 
-  @Get('brick-type/:brickTypeId')
-  findByBrickType(@Param('brickTypeId', ParseIntPipe) brickTypeId: number) {
-    return this.quotaService.findByBrickType(brickTypeId);
-  }
+    @Get('brick-type/:brickTypeId')
+    @Permission(PERMISSIONS.BRICK_TYPE_READ)
+    findByBrickType(@Param('brickTypeId', ParseIntPipe) brickTypeId: number) {
+        return this.quotaService.findByBrickType(brickTypeId);
+    }
 
-  @Post('compare')
-  compareWithQuota(@Body() comparisonDto: QuotaComparisonDto) {
-    return this.quotaService.compareWithQuota(comparisonDto);
-  }
+    @Post('compare')
+    @Permission(PERMISSIONS.QUOTA_TARGET_READ)
+    compareWithQuota(@Body() comparisonDto: QuotaComparisonDto) {
+        return this.quotaService.compareWithQuota(comparisonDto);
+    }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.quotaService.findOne(id);
-  }
+    @Get(':id')
+    @Permission(PERMISSIONS.QUOTA_TARGET_READ)
+    findOne(@Param('id', ParseIntPipe) id: number) {
+        return this.quotaService.findOne(id);
+    }
 
-  @Put(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateDto: UpdateQuotaTargetDto,
-  ) {
-    return this.quotaService.update(id, updateDto);
-  }
+    @Put(':id')
+    @Permission(PERMISSIONS.QUOTA_TARGET_UPDATE)
+    update(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateDto: UpdateQuotaTargetDto,
+    ) {
+        return this.quotaService.update(id, updateDto);
+    }
 
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.quotaService.remove(id);
-  }
+    @Delete(':id')
+    @Permission(PERMISSIONS.QUOTA_TARGET_DELETE)
+    remove(@Param('id', ParseIntPipe) id: number) {
+        return this.quotaService.remove(id);
+    }
 }

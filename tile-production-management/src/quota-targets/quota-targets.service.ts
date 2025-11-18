@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { QuotaTarget } from './entities/quota-target.entity';
@@ -10,8 +10,10 @@ import {
   QuotaComparisonDto,
   QuotaComparisonResultDto,
 } from './dtos/quota-target.dto';
+import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 
 @Injectable()
+@UseGuards(AuthGuard)
 export class QuotaTargetsService {
   constructor(
     @InjectRepository(QuotaTarget)

@@ -29,6 +29,16 @@ services:
       DB_SYNCHRONIZE: 'false'
       DB_LOGGING: 'false'
 
+      # Hash Config
+      HASH_ROUNDS: 12
+
+      # JWT Config
+      JWT_ACCESS_SECRET: 00bba012a1ce8543c233c085739919c672e792b951f39abd12ee24fd09deb53ebacc5685f6d79df6c4096224d6b17aab79c28b1723cb039c1b00f33648c5bcd2
+      JWT_ACCESS_EXPIRES: 10s
+
+      JWT_REFRESH_SECRET: b03f9662a672b511ada4d78a195ac355fcb435fdff59f9293fabe09ae38fe97b82a409a4de5e9aa47ef7c9dbb601436cc5f33e12f597518318e26716052cd8e4
+      JWT_REFRESH_EXPIRES: 1m
+
     ports:
       - '5555:5555'
     
