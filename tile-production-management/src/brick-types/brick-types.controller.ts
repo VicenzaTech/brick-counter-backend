@@ -82,7 +82,10 @@ export class BrickTypesController {
 
     @Put(':id/deactivate')
     @Permission(PERMISSIONS.PRODUCTION_LINE_UPDATE)
-    setInactive(@Param('id') id: string): Promise<BrickType> {
-        return this.brickTypesService.setInactive(+id);
+    setInactive(
+        @Param('id') id: string,
+        @Body() body: { productionLineId: number },
+    ): Promise<BrickType> {
+        return this.brickTypesService.setInactive(+id, body.productionLineId);
     }
 }

@@ -31,13 +31,23 @@ class LogParser:
         
         try:
             # Extract metadata from path
+            # New structure: logs/{date}/{production-line}/{brick-type}/{device-position}/{deviceId}_timestamp.txt
+            # Old structure: logs/{date}/{production-line}/{device-position}/{deviceId}_timestamp.txt
             parts = file_path.parts
-            if len(parts) < 5:
-                return entries
             
-            date_str = parts[-4]
-            production_line = parts[-3]
-            position = parts[-2]
+            # Detect structure by number of parts
+            if len(parts) >= 6:  # New structure with brick-type
+                date_str = parts[-5]
+                production_line = parts[-4]
+                brick_type = parts[-3]  # New level
+                position = parts[-2]
+            elif len(parts) >= 5:  # Old structure without brick-type
+                date_str = parts[-4]
+                production_line = parts[-3]
+                brick_type = 'unknown'
+                position = parts[-2]
+            else:
+                return entries
             
             # Extract device ID from filename (handle both formats)
             # - sau-me-01_20251118T142030.txt → SAU-ME-01

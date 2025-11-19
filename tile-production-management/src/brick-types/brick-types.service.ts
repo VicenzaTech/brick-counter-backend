@@ -72,18 +72,20 @@ export class BrickTypesService {
     }
 
     // Check if the production line is already running a DIFFERENT brick type
+    // Phải dừng sản xuất (activeBrickTypeId = null) trước khi chọn brick type khác
     if (
       productionLine.activeBrickTypeId &&
-      productionLine.activeBrickTypeId !== id &&
-      productionLine.productionStatus === 'producing'
+      productionLine.activeBrickTypeId !== id
     ) {
       const existingBrick = await this.brickTypeRepository.findOne({
         where: { id: productionLine.activeBrickTypeId },
       });
       
+      const statusText = productionLine.productionStatus === 'producing' ? 'đang sản xuất' : 'đang tạm dừng';
+      
       throw new ConflictException(
-        `Dây chuyền này đang sản xuất dòng gạch "${existingBrick?.name || productionLine.activeBrickTypeId}". ` +
-        `Vui lòng tạm dừng sản xuất dòng gạch hiện tại trước khi chuyển sang dòng khác.`
+        `Dây chuyền này ${statusText} dòng gạch "${existingBrick?.name || productionLine.activeBrickTypeId}". ` +
+        `Vui lòng dừng sản xuất dòng gạch hiện tại trước khi chọn dòng khác.`
       );
     }
 
@@ -114,10 +116,18 @@ export class BrickTypesService {
         where: { id: productionLineId },
       });
 
+      console.log(`🛑 Deactivating brick type ${id} on line ${productionLineId}`);
+      console.log(`   Line found: ${!!productionLine}`);
+      console.log(`   Current activeBrickTypeId: ${productionLine?.activeBrickTypeId}`);
+
       if (productionLine && productionLine.activeBrickTypeId === id) {
-        productionLine.activeBrickTypeId = undefined;
+        productionLine.activeBrickTypeId = null as any; // Set null để dừng sản xuất (TypeORM sẽ lưu NULL vào DB)
         productionLine.productionStatus = 'stopped';
-        await this.productionLineRepository.save(productionLine);
+        
+        const saved = await this.productionLineRepository.save(productionLine);
+        console.log(`   ✅ Saved - activeBrickTypeId now: ${saved.activeBrickTypeId}`);
+      } else if (productionLine) {
+        console.log(`   ⚠️ Skip - Line is running different brick type: ${productionLine.activeBrickTypeId}`);
       }
     } else {
       // Stop all production lines running this brick type
@@ -126,7 +136,7 @@ export class BrickTypesService {
       });
 
       for (const line of lines) {
-        line.activeBrickTypeId = undefined;
+        line.activeBrickTypeId = null as any; // Set null để dừng sản xuất (TypeORM sẽ lưu NULL vào DB)
         line.productionStatus = 'stopped';
         await this.productionLineRepository.save(line);
       }

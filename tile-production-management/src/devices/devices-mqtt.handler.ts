@@ -13,6 +13,7 @@ import { BoundedCacheService, RateLimitCacheService } from '../common/cache/boun
 import { TelemetryLoggingService } from './services/telemetry-logging.service';
 import { Device } from './entities/device.entity';
 import { DeviceTelemetry } from './entities/device-telemetry.entity';
+import { BrickType } from '../brick-types/entities/brick-type.entity';
 
 interface TelemetryMessage {
   deviceId?: string;
@@ -50,6 +51,8 @@ export class DevicesMqttHandler implements OnModuleInit {
     private readonly deviceRepository: Repository<Device>,
     @InjectRepository(DeviceTelemetry)
     private readonly telemetryRepository: Repository<DeviceTelemetry>,
+    @InjectRepository(BrickType)
+    private readonly brickTypeRepository: Repository<BrickType>,
     private readonly mqttService: MqttService,
     private readonly websocketGateway: WebSocketGatewayService,
     private readonly telemetryLoggingService: TelemetryLoggingService,
@@ -153,22 +156,59 @@ export class DevicesMqttHandler implements OnModuleInit {
       // Lưu vào database (UPSERT)
       try {
         let telemetry = await this.telemetryRepository.findOne({ 
-          where: { deviceId },
-          relations: ['position', 'position.productionLine']
+          where: { deviceId }
         });
+        
+        this.logger.log(`🔍 Telemetry query for ${deviceId}: found=${!!telemetry}`);
         
         if (!telemetry) {
           this.logger.log(`🆕 Creating new telemetry record for ${deviceId}`);
           telemetry = this.telemetryRepository.create({ deviceId });
         } else {
           this.logger.log(`🔄 Updating existing telemetry record for ${deviceId}`);
+        }
+        
+        // Set device line mapping và brick type mapping cho file logging
+        // Lấy production line qua: deviceId -> device -> position -> productionLine
+        const device = await this.deviceRepository.findOne({
+          where: { deviceId },
+          relations: ['position', 'position.productionLine']
+        });
+        
+        this.logger.log(`🔍 Device query for ${deviceId}: found=${!!device}, hasPosition=${!!device?.position}, hasProductionLine=${!!device?.position?.productionLine}`);
+        
+        if (device?.position?.productionLine) {
+          const productionLine = device.position.productionLine;
+          const lineName = productionLine.name;
+          this.mqttService.setDeviceLineMapping(deviceId, lineName);
+          this.logger.log(`📍 Set device ${deviceId} -> line ${lineName}, activeBrickTypeId=${productionLine.activeBrickTypeId}`);
           
-          // Set device line mapping cho file logging
-          if (telemetry.position?.productionLine) {
-            const lineName = telemetry.position.productionLine.name;
-            this.mqttService.setDeviceLineMapping(deviceId, lineName);
-            this.logger.debug(`📍 Set device ${deviceId} -> line ${lineName}`);
+          // Set brick type mapping cho file logging
+          // Kiểm tra activeBrickTypeId có giá trị không
+          if (productionLine.activeBrickTypeId) {
+            // Query brick type từ bảng brick_types
+            const brickType = await this.brickTypeRepository.findOne({
+              where: { id: productionLine.activeBrickTypeId }
+            });
+            
+            if (brickType) {
+              this.mqttService.setDeviceBrickTypeMapping(deviceId, brickType.name);
+              this.logger.log(`🧱 Set device ${deviceId} -> brick type "${brickType.name}" (ID: ${productionLine.activeBrickTypeId})`);
+            } else {
+              this.logger.warn(`⚠️ Brick type ID ${productionLine.activeBrickTypeId} not found in brick_types table`);
+              this.mqttService.setDeviceBrickTypeMapping(deviceId, 'no-brick-type');
+            }
+          } else {
+            // Không có brick type đang sản xuất (activeBrickTypeId = null)
+            // Tạm dừng sản xuất → set 'no-brick-type' → sẽ dừng ghi log
+            this.mqttService.setDeviceBrickTypeMapping(deviceId, 'no-brick-type');
+            this.logger.log(`⏸️ Set device ${deviceId} -> production paused (activeBrickTypeId: null)`);
           }
+        } else {
+          // Không tìm thấy device hoặc device không có production line
+          // Set 'no-brick-type' → sẽ dừng ghi log
+          this.logger.warn(`⚠️ Device ${deviceId} not found or has no production line assigned`);
+          this.mqttService.setDeviceBrickTypeMapping(deviceId, 'no-brick-type');
         }
         
         telemetry.count = count;
