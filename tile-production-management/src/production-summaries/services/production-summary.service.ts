@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ProductionShiftSummary } from '../entities/production-shift-summary.entity';
 import { ProductionDailySummary } from '../entities/production-daily-summary.entity';
-import { DeviceTelemetryLog } from '../../devices/entities/device-telemetry-log.entity';
+
 import { Device } from '../../devices/entities/device.entity';
 import { 
   getCurrentShiftInfo, 
@@ -33,8 +33,7 @@ export class ProductionSummaryService {
     private readonly shiftSummaryRepository: Repository<ProductionShiftSummary>,
     @InjectRepository(ProductionDailySummary)
     private readonly dailySummaryRepository: Repository<ProductionDailySummary>,
-    @InjectRepository(DeviceTelemetryLog)
-    private readonly telemetryLogRepository: Repository<DeviceTelemetryLog>,
+
     @InjectRepository(Device)
     private readonly deviceRepository: Repository<Device>,
   ) {}
@@ -42,90 +41,12 @@ export class ProductionSummaryService {
   /**
    * TEST Cron job: Ghi thông tin shift ra file (mỗi 2 phút)
    * Không lưu database, chỉ ghi ra file để test
+   * DISABLED: DeviceTelemetryLog entity removed
    */
-  @Cron('*/2 * * * *') // Mỗi 2 phút
-  async handleTestLogToFile() {
-    const now = new Date();
-    const logFile = path.join(process.cwd(), 'test-shift-logs.txt');
-    
-    try {
-      const currentShift = getCurrentShiftInfo();
-      
-      const logContent = `
-================================================================================
-⏰ TEST LOG - ${now.toISOString()}
-================================================================================
-📅 Thời gian hiện tại: ${now.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
-
-📊 THÔNG TIN CA HIỆN TẠI:
-   - Loại ca: ${currentShift.shiftType === 'day' ? 'Ca ngày (6h-18h)' : 'Ca đêm (18h-6h)'}
-   - Ngày ca: ${currentShift.shiftDate}
-   - Số ca: ${currentShift.shiftNumber}
-   - Bắt đầu: ${currentShift.shiftStartAt.toLocaleString('vi-VN')}
-   - Kết thúc: ${currentShift.shiftEndAt.toLocaleString('vi-VN')}
-
-📦 KIỂM TRA DEVICES:
-`;
-
-      // Lấy danh sách devices
-      const devices = await this.deviceRepository.find();
-      let deviceInfo = `   - Tổng số devices: ${devices.length}\n`;
-      
-      for (const device of devices) {
-        // Đếm logs của device trong ca hiện tại
-        const logsCount = await this.telemetryLogRepository.count({
-          where: { 
-            deviceId: device.deviceId, 
-            shiftDate: currentShift.shiftDate, 
-            shiftType: currentShift.shiftType 
-          },
-        });
-        
-        // Lấy log MỚI NHẤT (hiện tại)
-        const latestLog = await this.telemetryLogRepository.findOne({
-          where: { 
-            deviceId: device.deviceId, 
-            shiftDate: currentShift.shiftDate, 
-            shiftType: currentShift.shiftType 
-          },
-          order: { recordedAt: 'DESC' },
-        });
-        
-        // Lấy log TRƯỚC ĐÓ (>= 2 phút trước)
-        const twoMinutesAgo = new Date(now.getTime() - 2 * 60 * 1000);
-        const previousLog = await this.telemetryLogRepository
-          .createQueryBuilder('log')
-          .where('log.deviceId = :deviceId', { deviceId: device.deviceId })
-          .andWhere('log.shiftDate = :shiftDate', { shiftDate: currentShift.shiftDate })
-          .andWhere('log.shiftType = :shiftType', { shiftType: currentShift.shiftType })
-          .andWhere('log.recordedAt <= :twoMinutesAgo', { twoMinutesAgo })
-          .orderBy('log.recordedAt', 'DESC')
-          .getOne();
-        
-        deviceInfo += `   - ${device.deviceId}: ${logsCount} logs`;
-        if (latestLog && previousLog) {
-          const incrementalCount = latestLog.count - previousLog.count;
-          deviceInfo += `\n     → Previous: ${previousLog.count} (${previousLog.recordedAt.toLocaleString('vi-VN')})`;
-          deviceInfo += `\n     → Current: ${latestLog.count} (${latestLog.recordedAt.toLocaleString('vi-VN')})`;
-          deviceInfo += `\n     → Sản xuất trong 2 phút: ${incrementalCount} viên`;
-        } else if (latestLog) {
-          deviceInfo += `\n     → Current: ${latestLog.count} (${latestLog.recordedAt.toLocaleString('vi-VN')})`;
-          deviceInfo += `\n     → (Chưa có log trước đó để so sánh)`;
-        }
-        deviceInfo += '\n';
-      }
-      
-      const fullLog = logContent + deviceInfo + '\n';
-      
-      // Append to file
-      fs.appendFileSync(logFile, fullLog);
-      
-      this.logger.log(`📝 Test log written to ${logFile}`);
-    } catch (error) {
-      this.logger.error(`❌ Failed to write test log: ${error.message}`);
-      fs.appendFileSync(logFile, `\n❌ ERROR at ${now.toISOString()}: ${error.message}\n\n`);
-    }
-  }
+  // @Cron('*/2 * * * *')
+  // async handleTestLogToFile() {
+  //   // Method disabled - DeviceTelemetryLog entity removed
+  // }
 
   /**
    * Cron job: Chốt ca TESTING (mỗi 5 phút)
@@ -327,7 +248,19 @@ export class ProductionSummaryService {
 
   /**
    * Chốt ca cho một thiết bị
+   * DISABLED: DeviceTelemetryLog entity removed - use log files instead
    */
+  async closeShift(
+    deviceId: string,
+    shiftDate: string,
+    shiftType: 'day' | 'night',
+  ): Promise<ProductionShiftSummary> {
+    this.logger.warn(`⚠️ closeShift method disabled - DeviceTelemetryLog entity removed. Use log file parsing instead.`);
+    throw new Error('closeShift method disabled - use log file parsing for production data');
+  }
+
+  /*
+  // ORIGINAL METHOD - DISABLED
   async closeShift(
     deviceId: string,
     shiftDate: string,
@@ -737,7 +670,7 @@ export class ProductionSummaryService {
       this.logger.log(`🔄 Starting hourly backup at ${now.toISOString()}`);
       
       // Lấy tất cả dữ liệu cần backup
-      const [shiftSummaries, dailySummaries, telemetryLogs] = await Promise.all([
+      const [shiftSummaries, dailySummaries] = await Promise.all([
         this.shiftSummaryRepository.find({
           order: { shiftDate: 'DESC', shiftType: 'ASC' },
           take: 100, // Lấy 100 records gần nhất
@@ -746,14 +679,6 @@ export class ProductionSummaryService {
           order: { summaryDate: 'DESC' },
           take: 30, // Lấy 30 ngày gần nhất
         }),
-        // Lấy telemetry logs của 24h gần nhất
-        this.telemetryLogRepository
-          .createQueryBuilder('log')
-          .where('log.recordedAt >= :yesterday', { 
-            yesterday: new Date(now.getTime() - 24 * 60 * 60 * 1000) 
-          })
-          .orderBy('log.recordedAt', 'DESC')
-          .getMany(),
       ]);
       
       const backupData = {
@@ -763,13 +688,11 @@ export class ProductionSummaryService {
           recordCounts: {
             shiftSummaries: shiftSummaries.length,
             dailySummaries: dailySummaries.length,
-            telemetryLogs: telemetryLogs.length,
           },
         },
         data: {
           shiftSummaries,
           dailySummaries,
-          telemetryLogs,
         },
       };
       
@@ -910,7 +833,6 @@ export class ProductionSummaryService {
     restored: {
       shiftSummaries: number;
       dailySummaries: number;
-      telemetryLogs: number;
     };
   }> {
     try {
@@ -945,14 +867,6 @@ export class ProductionSummaryService {
         }
       }
       
-      // Restore telemetry logs
-      if (backupData.data?.telemetryLogs) {
-        for (const log of backupData.data.telemetryLogs) {
-          await this.telemetryLogRepository.save(log);
-          restoredCounts.telemetryLogs++;
-        }
-      }
-      
       this.logger.log(`✅ Restore completed: ${JSON.stringify(restoredCounts)}`);
       
       return {
@@ -968,7 +882,6 @@ export class ProductionSummaryService {
         restored: {
           shiftSummaries: 0,
           dailySummaries: 0,
-          telemetryLogs: 0,
         },
       };
     }

@@ -20,10 +20,10 @@ class ProductionMetrics:
     product_type: str     # Loại sản phẩm
     
     # Sản lượng từng khâu
-    sl_ep: int  # 100% - Sau máy ép (sau máy ép)
-    sl_truoc_lo: int = 0   # Trước lò nung (truoc-ln)
-    sl_sau_lo: int = 0     # Sau lò nung (sau-ln)
-    sl_sau_mai: int = 0    # Sau mài (sau-mc)
+    sl_ep: int  # 100% - Sau máy ép
+    sl_truoc_lo: int = 0   # Trước lò nưng (truoc-ln)
+    sl_sau_lo: int = 0     # Sau lò nưng (sau-ln)
+    sl_sau_mc: int = 0     # Sau mài
     sl_truoc_dh: int = 0   # Trước đóng hộp (truoc-dh)
     
     # Hao phí các công đoạn (số lượng)
@@ -221,16 +221,16 @@ class ProductionAnalyzer:
         """Phân tích dây chuyền tiêu chuẩn (DC1, DC2, DC6)"""
         
         # Map tên thiết bị thực tế:
-        # sau-mc: Sau máy cắt (100% - điểm bắt đầu)
+        # sau-me: Sau mài (passed as sl_ep parameter = 100% baseline)
+        # sau-mc: Sau máy cắt
         # truoc-ln: Trước lò nung
         # sau-ln: Sau lò nung  
-        # sau-me: Sau mài
         # truoc-dh: Trước đóng hộp
         
         truoc_lo = self._get_count(folder / "truoc-ln")  # Trước lò nung
         sau_lo = self._get_count(folder / "sau-ln")      # Sau lò nung
         truoc_mai = 0  # Chưa có cảm biến này
-        sau_mai = self._get_count(folder / "sau-mc")     # Sau mài
+        sau_mc = self._get_count(folder / "sau-mc")      # Sau máy cắt
         truoc_dh = self._get_count(folder / "truoc-dh")  # Trước đóng hộp
         
         # Tính hao phí
@@ -238,10 +238,10 @@ class ProductionAnalyzer:
         hp_lo = truoc_lo - sau_lo
         
         # Gạch ra lò = sau_lo
-        # Gạch rải mài = sau_mai (đã bắt đầu qua mài)
+        # Gạch rải mài = sau_mc (đã bắt đầu qua mài)
         # HP trước mài = Gạch ra lò - Tồn chưa mài - Gạch rải mài
         ton_chua_mai = self._get_count(folder / "ton-chua-mai") if (folder / "ton-chua-mai").exists() else 0
-        hp_tm = sau_lo - ton_chua_mai - sau_mai
+        hp_tm = sau_lo - ton_chua_mai - sau_mc
         
         # Sản phẩm hoàn thiện (nhập kho theo từng loại)
         # Cần có cảm biến phân loại hoặc nhập thủ công
@@ -249,7 +249,7 @@ class ProductionAnalyzer:
         
         # HP hoàn thiện = Gạch rải mài - Tổng nhập kho
         total_nhap_kho = sum(nhap_kho.values())
-        hp_ht = sau_mai - total_nhap_kho
+        hp_ht = sau_mc - total_nhap_kho
         
         return ProductionMetrics(
             date="",
@@ -258,7 +258,7 @@ class ProductionAnalyzer:
             sl_ep=sl_ep,
             sl_truoc_lo=truoc_lo,
             sl_sau_lo=sau_lo,
-            sl_sau_mai=sau_mai,
+            sl_sau_mc=sau_mc,
             sl_truoc_dh=truoc_dh,
             hp_moc=hp_moc,
             hp_lo=hp_lo,
@@ -325,13 +325,13 @@ class ProductionAnalyzer:
         print(f"     🔍 Analyzing folder: {brick_folder}")
         
         # Map tên thiết bị thực tế
-        # sau-mc: Sau mài cạnh
+        # sau-me: Sau mài (100% baseline)
+        # sau-mc: Sau máy cắt
         # truoc-ln: Trước lò nung
         # sau-ln: Sau lò nung
-        # sau-me: Sau máy ep
         # truoc-dh: Trước đóng hộp (hoàn thiện)
         
-        sl_ep = self._get_count(brick_folder / "sau-me")  # Sau máy cắt = 100%
+        sl_ep = self._get_count(brick_folder / "sau-me")  # Sau mài = 100% baseline
         
         # Tính hao phí các công đoạn
         if "Dây chuyền 5" in production_line:

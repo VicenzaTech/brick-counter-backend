@@ -1,7 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
 import { Position } from '../../positions/entities/position.entity';
-import { Production } from '../../productions/entities/production.entity';
-import { MaintenanceLog } from '../../maintenance-logs/entities/maintenance-log.entity';
 
 @Entity('devices')
 export class Device {
@@ -31,10 +29,4 @@ export class Device {
 
   @ManyToOne(() => Position, (pos) => pos.devices)
   position: Position;
-
-  @OneToMany(() => Production, (prod) => prod.device)
-  productions: Production[];
-
-  @OneToMany(() => MaintenanceLog, (log) => log.device)
-  maintenances: MaintenanceLog[];
 }
