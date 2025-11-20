@@ -18,6 +18,7 @@ import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 import { Permission } from 'src/auth/decorator/permission/permission.decorator';
 import { PERMISSIONS } from 'src/users/permission.constant';
+import { UpdatePossitionIndexDto } from './dtos/update-position-index.dto';
 
 @Controller('positions')
 @UseGuards(AuthGuard, PermissionGuard)
@@ -50,6 +51,15 @@ export class PositionsController {
         @Body() updatePositionDto: UpdatePositionDto,
     ): Promise<Position> {
         return this.positionsService.update(+id, updatePositionDto);
+    }
+
+    @Patch(':id')
+    @Permission(PERMISSIONS.POSITION_UPDATE)
+    updateIndex(
+        @Param('id') id: string,
+        @Body() updatePositionIndexDto: UpdatePossitionIndexDto,
+    ): Promise<Position> {
+        return this.positionsService.updateIndex(+id, updatePositionIndexDto);
     }
 
     @Delete(':id')

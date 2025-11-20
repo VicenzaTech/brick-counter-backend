@@ -36,65 +36,73 @@ import { User } from './users/entities/user.entity';
 import { Role } from './users/entities/role.entity';
 import { Permission } from './users/entities/permission.entity';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { PartitionManagerModule } from './partition-manager/partition-manager.module';
+import { MeasurementModule } from './measurement/measurement.module';
+import { Measurement } from './measurement/entities/measurement.entity';
 
 @Module({
-  imports: [
-    // Config module for environment variables
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
-    // Schedule module for cron jobs
-    ScheduleModule.forRoot(),
-    // TypeORM configuration
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5450'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || '123456',
-      database: process.env.DB_NAME || 'brick-counter-dev',
-      entities: [
-        Workshop,
-        ProductionLine,
-        Position,
-        Device,
-        DeviceTelemetry,
-        DeviceTelemetryLog,
-        BrickType,
-        Production,
-        ProductionSummary,
-        ProductionShiftSummary,
-        ProductionDailySummary,
-        MaintenanceLog,
-        ProductionMetric,
-        QuotaTarget,
-        User,
-        Role,
-        Permission
-      ],
-      synchronize: false, // Set to true to auto-create tables (development/staging only)
-    }),
-    // MQTT and WebSocket modules
-    MqttModule,
-    WebSocketModule,
-    // Feature modules
-    WorkshopsModule,
-    ProductionLinesModule,
-    PositionsModule,
-    DevicesModule,
-    ProductionsModule,
-    BrickTypesModule,
-    ProductionMetricsModule,
-    ProductionSummariesModule,
-    QuotaTargetsModule,
-    UsersModule,
-    HashModule,
-    AuthModule,
-    SessionModule,
-    RedisModule,
-    AnalyticsModule,
-  ],
-  providers: [],
+    imports: [
+        // Config module for environment variables
+        ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env',
+        }),
+        // Schedule module for cron jobs
+        ScheduleModule.forRoot(),
+        // TypeORM configuration
+        TypeOrmModule.forRoot({
+            type: 'postgres',
+            host: process.env.DB_HOST || 'localhost',
+            port: parseInt(process.env.DB_PORT || '5450'),
+            username: process.env.DB_USERNAME || 'postgres',
+            password: process.env.DB_PASSWORD || '123456',
+            database: process.env.DB_NAME || 'brick-counter-dev',
+            migrations: [__dirname + '/migrations/*{.ts,.js}'],
+            entities: [
+                Workshop,
+                ProductionLine,
+                Position,
+                Device,
+                DeviceTelemetry,
+                DeviceTelemetryLog,
+                BrickType,
+                Production,
+                ProductionSummary,
+                ProductionShiftSummary,
+                ProductionDailySummary,
+                MaintenanceLog,
+                ProductionMetric,
+                QuotaTarget,
+                User,
+                Role,
+                Permission,
+                Measurement
+            ],  
+            synchronize: false, // Set to true to auto-create tables (development/staging only)
+            // migrationsRun: true
+        }),
+        // MQTT and WebSocket modules
+        MqttModule,
+        WebSocketModule,
+        // Feature modules
+        WorkshopsModule,
+        ProductionLinesModule,
+        PositionsModule,
+        DevicesModule,
+        ProductionsModule,
+        BrickTypesModule,
+        ProductionMetricsModule,
+        ProductionSummariesModule,
+        QuotaTargetsModule,
+        UsersModule,
+        HashModule,
+        AuthModule,
+        SessionModule,
+        RedisModule,
+        AnalyticsModule,
+        PartitionManagerModule,
+        MeasurementModule,
+    ],
+    providers: [],
 })
-export class AppModule {}
+export class AppModule { }

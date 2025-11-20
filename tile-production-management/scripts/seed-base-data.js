@@ -23,13 +23,13 @@ const baseData = {
       name: 'Dây chuyền 2',
       description: 'Dây chuyền sản xuất gạch 400x800mm',
       capacity: 9000,
-      status: 'active'
+      status: 'unative'
     },
     {
       name: 'Dây chuyền 6',
       description: 'Dây chuyền sản xuất gạch 600x600mm',
       capacity: 11000,
-      status: 'active'
+      status: 'unative'
     }
   ],
   

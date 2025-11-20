@@ -5,9 +5,10 @@ import { ProductionLine } from './entities/production-line.entity';
 import { Workshop } from '../workshops/entities/workshop.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from 'src/auth/auth.module';
+import { RedisModule } from 'src/common/redis/redis.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProductionLine, Workshop]), AuthModule],
+  imports: [TypeOrmModule.forFeature([ProductionLine, Workshop]), AuthModule, RedisModule],
   providers: [ProductionLinesService],
   controllers: [ProductionLinesController]
 })

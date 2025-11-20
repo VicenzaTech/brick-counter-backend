@@ -21,7 +21,6 @@ import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 
 @Controller('devices')
-@UseGuards(AuthGuard, PermissionGuard)
 export class DevicesController {
     constructor(
         private readonly devicesService: DevicesService,
@@ -116,5 +115,25 @@ export class DevicesController {
             message: 'MQTT cache cleared successfully',
             timestamp: new Date().toISOString(),
         };
+    }
+
+
+    /**
+     * Reset Device  
+     * 
+    */
+
+    @Post(':deviceId/mqtt/reset')
+    resetDevice() {
+
+    }
+    /**
+     * Reset Counter Device
+     * 
+    */
+
+    @Post(':deviceId/mqtt/reset-counter')
+    resetCounterDevice() {
+
     }
 }

@@ -1,0 +1,969 @@
+{
+  "metadata": {
+    "backupTime": "2025-11-19T03:00:00.008Z",
+    "version": "1.0",
+    "recordCounts": {
+      "shiftSummaries": 0,
+      "dailySummaries": 0,
+      "telemetryLogs": 28
+    }
+  },
+  "data": {
+    "shiftSummaries": [],
+    "dailySummaries": [],
+    "telemetryLogs": [
+      {
+        "id": "c0dab7a8-7443-4cf8-b7ee-4ce9d0e00a91",
+        "deviceId": "SAU-MC-01",
+        "positionId": null,
+        "count": 793,
+        "errCount": 0,
+        "rssi": -19,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:55.801Z",
+        "receivedAt": "2025-11-19T02:59:55.801Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:57",
+          "metrics": {
+            "count": 793,
+            "error_count": 6
+          },
+          "quality": {
+            "rssi": -19
+          },
+          "deviceId": "SAU-MC-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/SAU-MC-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "ecd97d7b-e6b5-4167-856c-48a3500d7144",
+        "deviceId": "TRUOC-DH-01",
+        "positionId": null,
+        "count": 247,
+        "errCount": 0,
+        "rssi": -61,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:55.798Z",
+        "receivedAt": "2025-11-19T02:59:55.799Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:57",
+          "metrics": {
+            "count": 247,
+            "error_count": 12
+          },
+          "quality": {
+            "rssi": -61
+          },
+          "deviceId": "TRUOC-DH-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 3,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/TRUOC-DH-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "60cec9c3-cb58-40b4-a1a8-fdac235d50f4",
+        "deviceId": "SAU-ME-02",
+        "positionId": null,
+        "count": 661,
+        "errCount": 0,
+        "rssi": -53,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:55.687Z",
+        "receivedAt": "2025-11-19T02:59:55.687Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:57",
+          "metrics": {
+            "count": 661,
+            "error_count": 0
+          },
+          "quality": {
+            "rssi": -53
+          },
+          "deviceId": "SAU-ME-02",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/SAU-ME-02/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "4ad9bbdd-ddb5-46b7-99f5-0376790b110f",
+        "deviceId": "SAU-ME-01",
+        "positionId": null,
+        "count": 791,
+        "errCount": 0,
+        "rssi": -55,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:55.686Z",
+        "receivedAt": "2025-11-19T02:59:55.686Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:57",
+          "metrics": {
+            "count": 791,
+            "error_count": 4
+          },
+          "quality": {
+            "rssi": -55
+          },
+          "deviceId": "SAU-ME-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 1,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/SAU-ME-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "097c119d-1468-43b6-84d0-db1eaac636e0",
+        "deviceId": "TRUOC-LN-02",
+        "positionId": null,
+        "count": 315,
+        "errCount": 0,
+        "rssi": -45,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:55.682Z",
+        "receivedAt": "2025-11-19T02:59:55.682Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:57",
+          "metrics": {
+            "count": 315,
+            "error_count": 6
+          },
+          "quality": {
+            "rssi": -45
+          },
+          "deviceId": "TRUOC-LN-02",
+          "schemaVer": 1
+        },
+        "deltaCount": 1,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/TRUOC-LN-02/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "000d4d9e-edf8-4ef1-9c72-0ab9b726665a",
+        "deviceId": "SAU-LN-01",
+        "positionId": null,
+        "count": 38,
+        "errCount": 0,
+        "rssi": -38,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:55.585Z",
+        "receivedAt": "2025-11-19T02:59:55.585Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:57",
+          "metrics": {
+            "count": 38,
+            "error_count": 8
+          },
+          "quality": {
+            "rssi": -38
+          },
+          "deviceId": "SAU-LN-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 0,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/SAU-LN-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "17b1ea40-c924-4a00-96e9-8398e81a0c56",
+        "deviceId": "TRUOC-LN-01",
+        "positionId": null,
+        "count": 289,
+        "errCount": 0,
+        "rssi": -49,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:55.547Z",
+        "receivedAt": "2025-11-19T02:59:55.547Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:57",
+          "metrics": {
+            "count": 289,
+            "error_count": 72
+          },
+          "quality": {
+            "rssi": -49
+          },
+          "deviceId": "TRUOC-LN-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 1,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/TRUOC-LN-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "48c45bd8-d648-493d-a8fb-db50cf79f346",
+        "deviceId": "TRUOC-LN-02",
+        "positionId": null,
+        "count": 314,
+        "errCount": 0,
+        "rssi": -45,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:49.701Z",
+        "receivedAt": "2025-11-19T02:59:49.701Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:51",
+          "metrics": {
+            "count": 314,
+            "error_count": 6
+          },
+          "quality": {
+            "rssi": -45
+          },
+          "deviceId": "TRUOC-LN-02",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/TRUOC-LN-02/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "b211a171-7a6b-4c0f-b2c7-faf7fbf10805",
+        "deviceId": "TRUOC-DH-01",
+        "positionId": null,
+        "count": 244,
+        "errCount": 0,
+        "rssi": -58,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:49.700Z",
+        "receivedAt": "2025-11-19T02:59:49.700Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:51",
+          "metrics": {
+            "count": 244,
+            "error_count": 12
+          },
+          "quality": {
+            "rssi": -58
+          },
+          "deviceId": "TRUOC-DH-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 0,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/TRUOC-DH-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "2be57183-acb6-4f22-92ad-70ad5990103e",
+        "deviceId": "SAU-MC-01",
+        "positionId": null,
+        "count": 791,
+        "errCount": 0,
+        "rssi": -21,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:49.697Z",
+        "receivedAt": "2025-11-19T02:59:49.697Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:51",
+          "metrics": {
+            "count": 791,
+            "error_count": 6
+          },
+          "quality": {
+            "rssi": -21
+          },
+          "deviceId": "SAU-MC-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/SAU-MC-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "7136659c-77b4-4275-80c2-c1547e86af82",
+        "deviceId": "SAU-ME-01",
+        "positionId": null,
+        "count": 790,
+        "errCount": 0,
+        "rssi": -51,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:49.597Z",
+        "receivedAt": "2025-11-19T02:59:49.597Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:51",
+          "metrics": {
+            "count": 790,
+            "error_count": 4
+          },
+          "quality": {
+            "rssi": -51
+          },
+          "deviceId": "SAU-ME-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/SAU-ME-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "f8e4a378-3a7b-4331-bc3d-c11f8841b5e3",
+        "deviceId": "SAU-ME-02",
+        "positionId": null,
+        "count": 659,
+        "errCount": 0,
+        "rssi": -51,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:49.594Z",
+        "receivedAt": "2025-11-19T02:59:49.594Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:51",
+          "metrics": {
+            "count": 659,
+            "error_count": 0
+          },
+          "quality": {
+            "rssi": -51
+          },
+          "deviceId": "SAU-ME-02",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/SAU-ME-02/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "196b8294-14a9-4f0e-89d0-7f1d710cd4b8",
+        "deviceId": "TRUOC-LN-01",
+        "positionId": null,
+        "count": 288,
+        "errCount": 0,
+        "rssi": -51,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:49.556Z",
+        "receivedAt": "2025-11-19T02:59:49.557Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:51",
+          "metrics": {
+            "count": 288,
+            "error_count": 72
+          },
+          "quality": {
+            "rssi": -51
+          },
+          "deviceId": "TRUOC-LN-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/TRUOC-LN-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "ee7aa0a0-a97e-4d1d-a6c7-54766e233e38",
+        "deviceId": "SAU-LN-01",
+        "positionId": null,
+        "count": 38,
+        "errCount": 0,
+        "rssi": -37,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:49.486Z",
+        "receivedAt": "2025-11-19T02:59:49.487Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:51",
+          "metrics": {
+            "count": 38,
+            "error_count": 8
+          },
+          "quality": {
+            "rssi": -37
+          },
+          "deviceId": "SAU-LN-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 0,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/SAU-LN-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "f3e3734a-474c-4842-b6ce-dfa3d06edb50",
+        "deviceId": "SAU-MC-01",
+        "positionId": null,
+        "count": 789,
+        "errCount": 0,
+        "rssi": -20,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:43.720Z",
+        "receivedAt": "2025-11-19T02:59:43.720Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:45",
+          "metrics": {
+            "count": 789,
+            "error_count": 6
+          },
+          "quality": {
+            "rssi": -20
+          },
+          "deviceId": "SAU-MC-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/SAU-MC-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "e0429356-f82c-4bd3-9da7-9ecaddfc668e",
+        "deviceId": "TRUOC-DH-01",
+        "positionId": null,
+        "count": 244,
+        "errCount": 0,
+        "rssi": -58,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:43.717Z",
+        "receivedAt": "2025-11-19T02:59:43.717Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:45",
+          "metrics": {
+            "count": 244,
+            "error_count": 12
+          },
+          "quality": {
+            "rssi": -58
+          },
+          "deviceId": "TRUOC-DH-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 0,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/TRUOC-DH-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "e36f907b-455a-4bea-801a-583b2e3e8953",
+        "deviceId": "TRUOC-LN-02",
+        "positionId": null,
+        "count": 312,
+        "errCount": 0,
+        "rssi": -44,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:43.665Z",
+        "receivedAt": "2025-11-19T02:59:43.666Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:45",
+          "metrics": {
+            "count": 312,
+            "error_count": 6
+          },
+          "quality": {
+            "rssi": -44
+          },
+          "deviceId": "TRUOC-LN-02",
+          "schemaVer": 1
+        },
+        "deltaCount": 1,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/TRUOC-LN-02/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "e0f4d6f4-b918-4564-8227-10ad9342eb5d",
+        "deviceId": "SAU-ME-01",
+        "positionId": null,
+        "count": 788,
+        "errCount": 0,
+        "rssi": -55,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:43.611Z",
+        "receivedAt": "2025-11-19T02:59:43.611Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:45",
+          "metrics": {
+            "count": 788,
+            "error_count": 4
+          },
+          "quality": {
+            "rssi": -55
+          },
+          "deviceId": "SAU-ME-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/SAU-ME-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "e9c674ce-ef69-47ff-97af-d6d03a144d62",
+        "deviceId": "SAU-ME-02",
+        "positionId": null,
+        "count": 657,
+        "errCount": 0,
+        "rssi": -54,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:43.610Z",
+        "receivedAt": "2025-11-19T02:59:43.610Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:45",
+          "metrics": {
+            "count": 657,
+            "error_count": 0
+          },
+          "quality": {
+            "rssi": -54
+          },
+          "deviceId": "SAU-ME-02",
+          "schemaVer": 1
+        },
+        "deltaCount": 2,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/SAU-ME-02/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "69bc41c3-f563-4f26-8687-85a536511e72",
+        "deviceId": "TRUOC-LN-01",
+        "positionId": null,
+        "count": 286,
+        "errCount": 0,
+        "rssi": -49,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:43.591Z",
+        "receivedAt": "2025-11-19T02:59:43.592Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:45",
+          "metrics": {
+            "count": 286,
+            "error_count": 72
+          },
+          "quality": {
+            "rssi": -49
+          },
+          "deviceId": "TRUOC-LN-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 1,
+        "deltaErrCount": 0,
+        "timeSinceLast": 5,
+        "mqttTopic": "devices/TRUOC-LN-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "cc127e85-e96f-4b32-9f41-b85a09e47221",
+        "deviceId": "SAU-LN-01",
+        "positionId": null,
+        "count": 38,
+        "errCount": 0,
+        "rssi": -38,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:43.542Z",
+        "receivedAt": "2025-11-19T02:59:43.543Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:45",
+          "metrics": {
+            "count": 38,
+            "error_count": 8
+          },
+          "quality": {
+            "rssi": -38
+          },
+          "deviceId": "SAU-LN-01",
+          "schemaVer": 1
+        },
+        "deltaCount": 0,
+        "deltaErrCount": 0,
+        "timeSinceLast": 6,
+        "mqttTopic": "devices/SAU-LN-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "053af024-aead-4e0a-9f74-41afa33e4496",
+        "deviceId": "TRUOC-DH-01",
+        "positionId": null,
+        "count": 244,
+        "errCount": 0,
+        "rssi": -59,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:37.747Z",
+        "receivedAt": "2025-11-19T02:59:37.748Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:39",
+          "metrics": {
+            "count": 244,
+            "error_count": 12
+          },
+          "quality": {
+            "rssi": -59
+          },
+          "deviceId": "TRUOC-DH-01",
+          "schemaVer": 1
+        },
+        "deltaCount": null,
+        "deltaErrCount": null,
+        "timeSinceLast": null,
+        "mqttTopic": "devices/TRUOC-DH-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "32ab64c7-c2df-4b3f-a614-053a7c984660",
+        "deviceId": "TRUOC-LN-02",
+        "positionId": null,
+        "count": 311,
+        "errCount": 0,
+        "rssi": -45,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:37.716Z",
+        "receivedAt": "2025-11-19T02:59:37.716Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:39",
+          "metrics": {
+            "count": 311,
+            "error_count": 6
+          },
+          "quality": {
+            "rssi": -45
+          },
+          "deviceId": "TRUOC-LN-02",
+          "schemaVer": 1
+        },
+        "deltaCount": null,
+        "deltaErrCount": null,
+        "timeSinceLast": null,
+        "mqttTopic": "devices/TRUOC-LN-02/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "7357fcf7-2628-44aa-bc3c-5fb5c4c6129d",
+        "deviceId": "SAU-MC-01",
+        "positionId": null,
+        "count": 787,
+        "errCount": 0,
+        "rssi": -17,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:37.713Z",
+        "receivedAt": "2025-11-19T02:59:37.715Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:39",
+          "metrics": {
+            "count": 787,
+            "error_count": 6
+          },
+          "quality": {
+            "rssi": -17
+          },
+          "deviceId": "SAU-MC-01",
+          "schemaVer": 1
+        },
+        "deltaCount": null,
+        "deltaErrCount": null,
+        "timeSinceLast": null,
+        "mqttTopic": "devices/SAU-MC-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "588b8c2e-5430-4fc2-b503-c82ce2833c9b",
+        "deviceId": "TRUOC-LN-01",
+        "positionId": null,
+        "count": 285,
+        "errCount": 0,
+        "rssi": -49,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:37.625Z",
+        "receivedAt": "2025-11-19T02:59:37.626Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:39",
+          "metrics": {
+            "count": 285,
+            "error_count": 72
+          },
+          "quality": {
+            "rssi": -49
+          },
+          "deviceId": "TRUOC-LN-01",
+          "schemaVer": 1
+        },
+        "deltaCount": null,
+        "deltaErrCount": null,
+        "timeSinceLast": null,
+        "mqttTopic": "devices/TRUOC-LN-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "cb51769d-efd8-4131-90b0-f648ffe9df69",
+        "deviceId": "SAU-ME-01",
+        "positionId": null,
+        "count": 786,
+        "errCount": 0,
+        "rssi": -53,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:37.613Z",
+        "receivedAt": "2025-11-19T02:59:37.614Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:39",
+          "metrics": {
+            "count": 786,
+            "error_count": 4
+          },
+          "quality": {
+            "rssi": -53
+          },
+          "deviceId": "SAU-ME-01",
+          "schemaVer": 1
+        },
+        "deltaCount": null,
+        "deltaErrCount": null,
+        "timeSinceLast": null,
+        "mqttTopic": "devices/SAU-ME-01/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "bc285518-3643-4af2-9766-08e299461a41",
+        "deviceId": "SAU-ME-02",
+        "positionId": null,
+        "count": 655,
+        "errCount": 0,
+        "rssi": -55,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:37.570Z",
+        "receivedAt": "2025-11-19T02:59:37.571Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:39",
+          "metrics": {
+            "count": 655,
+            "error_count": 0
+          },
+          "quality": {
+            "rssi": -55
+          },
+          "deviceId": "SAU-ME-02",
+          "schemaVer": 1
+        },
+        "deltaCount": null,
+        "deltaErrCount": null,
+        "timeSinceLast": null,
+        "mqttTopic": "devices/SAU-ME-02/telemetry",
+        "mqttQos": null
+      },
+      {
+        "id": "68c9588b-7294-44b9-a649-0b583cfb60f3",
+        "deviceId": "SAU-LN-01",
+        "positionId": null,
+        "count": 38,
+        "errCount": 0,
+        "rssi": -37,
+        "status": "unknown",
+        "battery": null,
+        "temperature": null,
+        "uptime": null,
+        "shiftDate": "2025-11-18",
+        "shiftType": "night",
+        "shiftNumber": 644,
+        "recordedAt": "2025-11-19T02:59:37.477Z",
+        "receivedAt": "2025-11-19T02:59:37.479Z",
+        "rawPayload": {
+          "ts": "2025-11-19T09:59:38",
+          "metrics": {
+            "count": 38,
+            "error_count": 8
+          },
+          "quality": {
+            "rssi": -37
+          },
+          "deviceId": "SAU-LN-01",
+          "schemaVer": 1
+        },
+        "deltaCount": null,
+        "deltaErrCount": null,
+        "timeSinceLast": null,
+        "mqttTopic": "devices/SAU-LN-01/telemetry",
+        "mqttQos": null
+      }
+    ]
+  }
+}
