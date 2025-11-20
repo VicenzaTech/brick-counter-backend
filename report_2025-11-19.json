@@ -1,0 +1,130 @@
+{
+  "date": "2025-11-19",
+  "production_lines": {
+    "Dây chuyền 1": {
+      "300x600mm": {
+        "metrics": {
+          "date": "2025-11-19",
+          "production_line": "Dây chuyền 1",
+          "product_type": "300x600mm",
+          "sl_ep": 676,
+          "sl_truoc_lo": 110,
+          "sl_sau_lo": 0,
+          "sl_sau_mai": 84,
+          "sl_truoc_dh": 61,
+          "hp_moc": 566,
+          "hp_lo": 110,
+          "hp_tm": -84,
+          "hp_ht": 84,
+          "hp_lo_xuong": 0,
+          "hp_sau_xuong": 0,
+          "hp_lo_men": 0,
+          "sl_a1": 0,
+          "sl_a2": 0,
+          "sl_cat_lo": 0,
+          "sl_pe1": 0,
+          "sl_pe2": 0,
+          "ton_chua_mai": 0
+        },
+        "percentages": {
+          "ty_le_hp_moc": 83.72781065088756,
+          "ty_le_hp_lo": 16.272189349112427,
+          "ty_le_hp_tm": -12.42603550295858,
+          "ty_le_hp_ht": 12.42603550295858,
+          "ty_le_a1": 0.0,
+          "ty_le_a2": 0.0,
+          "ty_le_cat_lo": 0.0,
+          "ty_le_pe1": 0.0,
+          "ty_le_pe2": 0.0,
+          "ty_le_ton": 0.0
+        },
+        "validation": {
+          "is_valid": true,
+          "total_percentage": 99.99999999999999
+        }
+      },
+      "400x800mm": {
+        "metrics": {
+          "date": "2025-11-19",
+          "production_line": "Dây chuyền 1",
+          "product_type": "400x800mm",
+          "sl_ep": 929,
+          "sl_truoc_lo": 1177,
+          "sl_sau_lo": 523,
+          "sl_sau_mai": 969,
+          "sl_truoc_dh": 668,
+          "hp_moc": -248,
+          "hp_lo": 654,
+          "hp_tm": -446,
+          "hp_ht": 969,
+          "hp_lo_xuong": 0,
+          "hp_sau_xuong": 0,
+          "hp_lo_men": 0,
+          "sl_a1": 0,
+          "sl_a2": 0,
+          "sl_cat_lo": 0,
+          "sl_pe1": 0,
+          "sl_pe2": 0,
+          "ton_chua_mai": 0
+        },
+        "percentages": {
+          "ty_le_hp_moc": -26.695371367061355,
+          "ty_le_hp_lo": 70.39827771797633,
+          "ty_le_hp_tm": -48.008611410118405,
+          "ty_le_hp_ht": 104.30570505920345,
+          "ty_le_a1": 0.0,
+          "ty_le_a2": 0.0,
+          "ty_le_cat_lo": 0.0,
+          "ty_le_pe1": 0.0,
+          "ty_le_pe2": 0.0,
+          "ty_le_ton": 0.0
+        },
+        "validation": {
+          "is_valid": true,
+          "total_percentage": 100.00000000000001
+        }
+      },
+      "600x600mm": {
+        "metrics": {
+          "date": "2025-11-19",
+          "production_line": "Dây chuyền 1",
+          "product_type": "600x600mm",
+          "sl_ep": 36,
+          "sl_truoc_lo": 0,
+          "sl_sau_lo": 0,
+          "sl_sau_mai": 0,
+          "sl_truoc_dh": 0,
+          "hp_moc": 36,
+          "hp_lo": 0,
+          "hp_tm": 0,
+          "hp_ht": 0,
+          "hp_lo_xuong": 0,
+          "hp_sau_xuong": 0,
+          "hp_lo_men": 0,
+          "sl_a1": 0,
+          "sl_a2": 0,
+          "sl_cat_lo": 0,
+          "sl_pe1": 0,
+          "sl_pe2": 0,
+          "ton_chua_mai": 0
+        },
+        "percentages": {
+          "ty_le_hp_moc": 100.0,
+          "ty_le_hp_lo": 0.0,
+          "ty_le_hp_tm": 0.0,
+          "ty_le_hp_ht": 0.0,
+          "ty_le_a1": 0.0,
+          "ty_le_a2": 0.0,
+          "ty_le_cat_lo": 0.0,
+          "ty_le_pe1": 0.0,
+          "ty_le_pe2": 0.0,
+          "ty_le_ton": 0.0
+        },
+        "validation": {
+          "is_valid": true,
+          "total_percentage": 100.0
+        }
+      }
+    }
+  }
+}

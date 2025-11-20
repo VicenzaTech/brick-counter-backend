@@ -31,14 +31,32 @@ class LogParser:
         
         try:
             # Extract metadata from path
+            # New structure: logs/{date}/{production-line}/{brick-type}/{device-position}/{deviceId}_timestamp.txt
+            # Old structure: logs/{date}/{production-line}/{device-position}/{deviceId}_timestamp.txt
             parts = file_path.parts
-            if len(parts) < 5:
+            
+            # Detect structure by number of parts
+            if len(parts) >= 6:  # New structure with brick-type
+                date_str = parts[-5]
+                production_line = parts[-4]
+                brick_type = parts[-3]  # New level
+                position = parts[-2]
+            elif len(parts) >= 5:  # Old structure without brick-type
+                date_str = parts[-4]
+                production_line = parts[-3]
+                brick_type = 'unknown'
+                position = parts[-2]
+            else:
                 return entries
             
-            date_str = parts[-4]
-            production_line = parts[-3]
-            position = parts[-2]
-            device_id = file_path.stem.upper()
+            # Extract device ID from filename (handle both formats)
+            # - sau-me-01_20251118T142030.txt → SAU-ME-01
+            # - sau-me-01.txt → SAU-ME-01
+            filename = file_path.stem
+            if '_' in filename:
+                device_id = filename.split('_')[0].upper()
+            else:
+                device_id = filename.upper()
             
             # Parse each line
             for line in lines:
@@ -112,12 +130,13 @@ class LogParser:
     def find_device_logs(self, date: datetime) -> List[Path]:
         """
         Find all device log files for a specific date
+        Returns only the latest file per device (sorted by filename timestamp)
         
         Args:
             date: Date to search for
             
         Returns:
-            List of Path objects
+            List of Path objects (latest file per device)
         """
         date_str = date.strftime('%Y-%m-%d')
         date_dir = self.log_dir / date_str
@@ -126,7 +145,37 @@ class LogParser:
             return []
         
         # Find all .txt files recursively
-        return list(date_dir.rglob('*.txt'))
+        all_files = list(date_dir.rglob('*.txt'))
+        
+        # Group by device (files have pattern: deviceid_timestamp.txt or deviceid.txt)
+        device_files: dict = {}
+        
+        for file_path in all_files:
+            # Extract device ID from filename
+            filename = file_path.stem  # Without .txt extension
+            
+            # Handle both formats:
+            # - sau-me-01_20251118T142030.txt (with timestamp)
+            # - sau-me-01.txt (old format without timestamp)
+            if '_' in filename:
+                device_id = filename.split('_')[0].upper()
+            else:
+                device_id = filename.upper()
+            
+            # Keep only the latest file per device (sorted by filename, newest last)
+            if device_id not in device_files:
+                device_files[device_id] = []
+            
+            device_files[device_id].append(file_path)
+        
+        # Get the latest file for each device
+        latest_files = []
+        for device_id, files in device_files.items():
+            # Sort by filename (timestamp in filename) and take the last one
+            latest_file = sorted(files, key=lambda f: f.name)[-1]
+            latest_files.append(latest_file)
+        
+        return latest_files
     
     def find_device_log(self, date: datetime, production_line: str, 
                        position: str, device_id: str) -> Optional[Path]:

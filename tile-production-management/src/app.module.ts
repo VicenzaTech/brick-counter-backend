@@ -7,20 +7,17 @@ import { ProductionLine } from './production-lines/entities/production-line.enti
 import { Position } from './positions/entities/position.entity';
 import { Device } from './devices/entities/device.entity';
 import { DeviceTelemetry } from './devices/entities/device-telemetry.entity';
-import { DeviceTelemetryLog } from './devices/entities/device-telemetry-log.entity';
+
 import { BrickType } from './brick-types/entities/brick-type.entity';
-import { Production } from './productions/entities/production.entity';
 import { ProductionSummary } from './production-summaries/entities/production-summary.entity';
 import { ProductionShiftSummary } from './production-summaries/entities/production-shift-summary.entity';
 import { ProductionDailySummary } from './production-summaries/entities/production-daily-summary.entity';
-import { MaintenanceLog } from './maintenance-logs/entities/maintenance-log.entity';
 import { ProductionMetric } from './production-metrics/entities/production-metric.entity';
 import { QuotaTarget } from './quota-targets/entities/quota-target.entity';
 import { WorkshopsModule } from './workshops/workshops.module';
 import { ProductionLinesModule } from './production-lines/production-lines.module';
 import { PositionsModule } from './positions/positions.module';
 import { DevicesModule } from './devices/devices.module';
-import { ProductionsModule } from './productions/productions.module';
 import { BrickTypesModule } from './brick-types/brick-types.module';
 import { ProductionMetricsModule } from './production-metrics/production-metrics.module';
 import { ProductionSummariesModule } from './production-summaries/production-summaries.module';

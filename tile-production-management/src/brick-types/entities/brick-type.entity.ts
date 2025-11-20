@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Production } from '../../productions/entities/production.entity';
 import { ProductionSummary } from '../../production-summaries/entities/production-summary.entity';
 import { ProductionMetric } from '../../production-metrics/entities/production-metric.entity';
 import { QuotaTarget } from '../../quota-targets/entities/quota-target.entity';
@@ -32,9 +31,6 @@ export class BrickType {
 
   @Column({ type: 'text', nullable: true })
   activeStatus?: string; // 'producing', 'paused', 'inactive'
-
-  @OneToMany(() => Production, (prod) => prod.brickType)
-  productions: Production[];
 
   @OneToMany(() => ProductionSummary, (sum) => sum.brickType)
   summaries: ProductionSummary[];

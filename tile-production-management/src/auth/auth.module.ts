@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { AuthGuard } from './guard/auth/auth.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { UsersModule } from 'src/users/users.module';
@@ -8,7 +9,7 @@ import { HashModule } from 'src/common/hash/hash.module';
 import { SessionModule } from 'src/session/session.module';
 
 @Module({
-    providers: [AuthService],
+    providers: [AuthService, AuthGuard],
     controllers: [AuthController],
     imports: [
         JwtModule.registerAsync({
@@ -33,7 +34,8 @@ import { SessionModule } from 'src/session/session.module';
     ],
     exports: [
         JwtModule,
-        UsersModule
+        UsersModule,
+        AuthGuard
     ]
 })
 export class AuthModule { }
