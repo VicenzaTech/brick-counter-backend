@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DevicesService } from './devices.service';
 import { DevicesController } from './devices.controller';
-import { DevicesMqttHandler } from './devices-mqtt.handler';
 
 import { Device } from './entities/device.entity';
 import { DeviceTelemetry } from './entities/device-telemetry.entity';
@@ -18,8 +17,8 @@ import { UsersModule } from 'src/users/users.module';
     TypeOrmModule.forFeature([Device, DeviceTelemetry, Position, BrickType]),
     WebSocketModule, UsersModule
   ],
-  providers: [DevicesService, DevicesMqttHandler, JwtService],
+  providers: [DevicesService, JwtService],
   controllers: [DevicesController],
-  exports: [DevicesMqttHandler],
+  exports: [DevicesService],
 })
 export class DevicesModule {}

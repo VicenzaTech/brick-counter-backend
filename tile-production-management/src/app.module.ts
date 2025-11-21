@@ -24,6 +24,9 @@ import { ProductionSummariesModule } from './production-summaries/production-sum
 import { QuotaTargetsModule } from './quota-targets/quota-targets.module';
 import { MqttModule } from './mqtt/mqtt.module';
 import { WebSocketModule } from './websocket/websocket.module';
+// Simple Universal Modules - 1 handler cho tất cả, chỉ lưu raw data (RECOMMENDED)
+import { SimpleUniversalMqttModule } from './mqtt/simple-universal-mqtt.module';
+import { SimpleUniversalWebSocketModule } from './websocket/simple-universal-websocket.module';
 import { HashModule } from './common/hash/hash.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';

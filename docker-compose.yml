@@ -99,31 +99,31 @@ services:
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
 
-  python-analytics:
-    build:
-      context: ./python-analytics
-      dockerfile: Dockerfile
-    container_name: tile-analytics
-    restart: unless-stopped
-    environment:
-      LOG_DIR: /app/logs
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      MQTT_BROKER: mosquitto
-      MQTT_PORT: 1883
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: brick-counter-dev
-      DB_USER: admin
-      DB_PASSWORD: 123456
-      CALCULATION_INTERVAL: 10
-      HISTORY_WINDOW: 600
-    volumes:
-      - ./tile-production-management/logs:/app/logs:ro
-    depends_on:
-      - redis
-      - mosquitto
-      - postgres
+  # python-analytics:
+  #   build:
+  #     context: ./python-analytics
+  #     dockerfile: Dockerfile
+  #   container_name: tile-analytics
+  #   restart: unless-stopped
+  #   environment:
+  #     LOG_DIR: /app/logs
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: 6379
+  #     MQTT_BROKER: mosquitto
+  #     MQTT_PORT: 1883
+  #     DB_HOST: postgres
+  #     DB_PORT: 5432
+  #     DB_NAME: brick-counter-dev
+  #     DB_USER: admin
+  #     DB_PASSWORD: 123456
+  #     CALCULATION_INTERVAL: 10
+  #     HISTORY_WINDOW: 600
+  #   volumes:
+  #     - ./tile-production-management/logs:/app/logs:ro
+  #   depends_on:
+  #     - redis
+  #     - mosquitto
+  #     - postgres
 
 volumes:
   redis-data:

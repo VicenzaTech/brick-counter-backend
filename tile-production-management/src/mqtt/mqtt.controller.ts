@@ -1,18 +1,19 @@
 import { Controller, Get, Post, Body, Logger } from '@nestjs/common';
 import { MqttService } from './mqtt.service';
+import { SimpleUniversalMqttService } from './services/simple-universal-mqtt.service';
 
 @Controller('mqtt')
 export class MqttController {
   private readonly logger = new Logger(MqttController.name);
 
-  constructor(private readonly mqttService: MqttService) {}
+  constructor(private readonly simpleUniversalMqttService: SimpleUniversalMqttService) {}
 
   /**
    * Check MQTT connection status
    */
   @Get('status')
   getStatus() {
-    const connected = this.mqttService.isConnected();
+    const connected = this.simpleUniversalMqttService.isConnected();
     this.logger.log(`MQTT Status check: ${connected ? 'Connected' : 'Disconnected'}`);
     return {
       connected,
@@ -38,11 +39,11 @@ export class MqttController {
         rssi: -50 - Math.floor(Math.random() * 30),
       },
     };
-
+    console.log('Sending test MQTT message', { topic, data });
     this.logger.log(`📤 Sending test message to topic: ${topic}`);
     this.logger.log(`   Data: ${JSON.stringify(data)}`);
 
-    const success = this.mqttService.publishMessage(topic, data, { qos: 1 });
+    const success = this.simpleUniversalMqttService.publishCommand(`TRUOC-MM-01`, deviceId, data);
 
     return {
       success,
@@ -81,7 +82,7 @@ export class MqttController {
         },
       };
 
-      const success = this.mqttService.publishMessage(topic, data, { qos: 1 });
+      const success = this.simpleUniversalMqttService.publishCommand(`TRUOC-MM-01`, deviceId, data);
       results.push({ index: i, success, timestamp: new Date().toISOString() });
 
       if (i < count - 1) {
