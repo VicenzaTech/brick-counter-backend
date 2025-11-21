@@ -12,6 +12,7 @@ import { SimpleUniversalHandler } from './handlers/simple-universal.handler';
 
 // Entities
 import { Device } from '../devices/entities/device.entity';
+import { MqttController } from './mqtt.controller';
 // TODO: Add Measurement entity when table is ready
 
 @Global()
@@ -23,6 +24,9 @@ import { Device } from '../devices/entities/device.entity';
   providers: [
     SimpleUniversalHandler,
     SimpleUniversalMqttService,
+  ],
+  controllers: [
+    MqttController
   ],
   exports: [
     SimpleUniversalHandler,

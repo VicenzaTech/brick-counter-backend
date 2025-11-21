@@ -189,6 +189,7 @@ export class SimpleUniversalHandler {
     }
 
     const topic = `devices/${clusterCode}/${deviceId}/cmd`;
+    console.log('Publishing command to topic123123', topic, command);
     const payload = JSON.stringify({
       ...command,
       timestamp: new Date().toISOString(),

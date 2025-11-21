@@ -14,6 +14,7 @@ import { MessageQueueService } from '../common/queue/message-queue.service';
 import { BoundedCacheService } from '../common/cache/bounded-cache.service';
 import { ProductionLine } from '../production-lines/entities/production-line.entity';
 import { DevicesModule } from '../devices/devices.module';
+import { SimpleUniversalMqttService } from './services/simple-universal-mqtt.service';
 
 @Global()
 @Module({
@@ -59,9 +60,9 @@ import { DevicesModule } from '../devices/devices.module';
       },
     },
     MessageQueueService,
-    MqttService,
+    SimpleUniversalMqttService,
     DeviceCommandService,
   ],
-  exports: [MqttService, MessageQueueService, BoundedCacheService, 'REDIS_CLIENT', DeviceCommandService],
+  exports: [SimpleUniversalMqttService, MessageQueueService, BoundedCacheService, 'REDIS_CLIENT', DeviceCommandService],
 })
 export class MqttModule {}
