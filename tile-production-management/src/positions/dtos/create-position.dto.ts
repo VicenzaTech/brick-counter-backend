@@ -3,4 +3,5 @@ export class CreatePositionDto {
   description?: string;
   coordinates?: string;
   productionLineId: number;
+  index?: number
 }

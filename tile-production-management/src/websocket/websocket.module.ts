@@ -9,8 +9,8 @@ import { DeviceTelemetry } from '../devices/entities/device-telemetry.entity';
 
 @Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([DeviceTelemetry])],
-  providers: [WebSocketGatewayService],
-  exports: [WebSocketGatewayService],
+    imports: [TypeOrmModule.forFeature([DeviceTelemetry])],
+    providers: [WebSocketGatewayService],
+    exports: [WebSocketGatewayService],
 })
-export class WebSocketModule {}
+export class WebSocketModule { }

@@ -36,61 +36,77 @@ import { User } from './users/entities/user.entity';
 import { Role } from './users/entities/role.entity';
 import { Permission } from './users/entities/permission.entity';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { PartitionManagerModule } from './partition-manager/partition-manager.module';
+import { MeasurementModule } from './measurement/measurement.module';
+import { Measurement } from './measurement/entities/measurement.entity';
+import { DeviceCluster } from './device-clusters/entities/device-cluster.entity';
+import { MeasurementType } from './measurement-types/entities/measurement-types.entity';
+import { DeviceClustersModule } from './device-clusters/device-clusters.module';
+import { MeasurementTypesModule } from './measurement-types/measurement-types.module';
 
 @Module({
-  imports: [
-    // Config module for environment variables
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
-    // Schedule module for cron jobs
-    ScheduleModule.forRoot(),
-    // TypeORM configuration
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5450'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || '123456',
-      database: process.env.DB_NAME || 'brick-counter-dev',
-      entities: [
-        Workshop,
-        ProductionLine,
-        Position,
-        Device,
-        DeviceTelemetry,
-        BrickType,
-        ProductionSummary,
-        ProductionShiftSummary,
-        ProductionDailySummary,
-        ProductionMetric,
-        QuotaTarget,
-        User,
-        Role,
-        Permission
-      ],
-      synchronize: true, // Set to true to auto-create tables (development/staging only)
-    }),
-    // Simple Universal Modules - 1 handler cho tất cả (RECOMMENDED)
-    SimpleUniversalMqttModule,
-    SimpleUniversalWebSocketModule,
-    // Feature modules
-    WorkshopsModule,
-    ProductionLinesModule,
-    PositionsModule,
-    DevicesModule,
-    BrickTypesModule,
-    ProductionMetricsModule,
-    ProductionSummariesModule,
-    QuotaTargetsModule,
-    UsersModule,
-    HashModule,
-    AuthModule,
-    SessionModule,
-    RedisModule,
-    AnalyticsModule,
-  ],
-  providers: [],
+    imports: [
+        // Config module for environment variables
+        ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env',
+        }),
+        // Schedule module for cron jobs
+        ScheduleModule.forRoot(),
+        // TypeORM configuration
+        TypeOrmModule.forRoot({
+            type: 'postgres',
+            host: process.env.DB_HOST || 'localhost',
+            port: parseInt(process.env.DB_PORT || '5450'),
+            username: process.env.DB_USERNAME || 'postgres',
+            password: process.env.DB_PASSWORD || '123456',
+            database: process.env.DB_NAME || 'brick-counter-dev',
+            migrations: [__dirname + '/migrations/*{.ts,.js}'],
+            entities: [
+                Workshop,
+                ProductionLine,
+                Position,
+                Device,
+                DeviceTelemetry,
+                BrickType,
+                ProductionSummary,
+                ProductionShiftSummary,
+                ProductionDailySummary,
+                ProductionMetric,
+                QuotaTarget,
+                User,
+                Role,
+                Permission,
+                DeviceCluster,
+                Measurement,
+                MeasurementType,
+            ],
+            synchronize: true, // Set to true to auto-create tables (development/staging only)
+            migrationsRun: true // Set to true when initial db
+        }),
+        // MQTT and WebSocket modules
+        MqttModule,
+        WebSocketModule,
+        // Feature modules
+        WorkshopsModule,
+        ProductionLinesModule,
+        PositionsModule,
+        DevicesModule,
+        BrickTypesModule,
+        ProductionMetricsModule,
+        ProductionSummariesModule,
+        QuotaTargetsModule,
+        UsersModule,
+        HashModule,
+        AuthModule,
+        SessionModule,
+        RedisModule,
+        AnalyticsModule,
+        PartitionManagerModule,
+        MeasurementModule,
+        DeviceClustersModule,
+        MeasurementTypesModule
+    ],
+    providers: [],
 })
-export class AppModule {}
+export class AppModule { }

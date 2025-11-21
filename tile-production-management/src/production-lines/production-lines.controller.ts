@@ -48,7 +48,7 @@ export class ProductionLinesController {
     update(
         @Param('id') id: string,
         @Body() updateProductionLineDto: UpdateProductionLineDto,
-    ): Promise<ProductionLine> {
+    ): Promise<Partial<ProductionLine>> {
         return this.productionLinesService.update(+id, updateProductionLineDto);
     }
 

@@ -3,4 +3,5 @@ export class UpdatePositionDto {
   description?: string;
   coordinates?: string;
   productionLineId?: number;
+  index?: number;
 }

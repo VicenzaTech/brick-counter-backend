@@ -3,12 +3,12 @@ import {
     Get,
     Post,
     Body,
-    Put,
     Param,
     Delete,
     HttpCode,
     HttpStatus,
     UseGuards,
+    Patch,
 } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { Device } from './entities/device.entity';
@@ -45,7 +45,7 @@ export class DevicesController {
         return this.devicesService.findOne(+id);
     }
 
-    @Put(':id')
+    @Patch(':id')
     @Permission(PERMISSIONS.DEVICE_UPDATE)
     update(
         @Param('id') id: number,
@@ -91,6 +91,8 @@ export class DevicesController {
      * Get latest telemetry from database for all devices
      */
     @Get('telemetry/latest')
+    @Permission(PERMISSIONS.DEVICE_READ)
+
     getLatestTelemetry() {
         return this.devicesService.getLatestTelemetry();
     }
@@ -99,6 +101,8 @@ export class DevicesController {
      * Get latest telemetry from database for a specific device
      */
     @Get(':deviceId/telemetry/latest')
+    @Permission(PERMISSIONS.DEVICE_READ)
+
     getDeviceLatestTelemetry(@Param('deviceId') deviceId: string) {
         return this.devicesService.getDeviceLatestTelemetry(deviceId);
     }
@@ -115,4 +119,27 @@ export class DevicesController {
     //         timestamp: new Date().toISOString(),
     //     };
     // }
+    // @Post('mqtt/clear-cache')
+    // @Permission(PERMISSIONS.DEVICE_READ)
+
+    // @HttpCode(HttpStatus.OK)
+    // clearMqttCache() {
+    //     this.devicesMqttHandler.clearCache();
+    //     return {
+    //         message: 'MQTT cache cleared successfully',
+    //         timestamp: new Date().toISOString(),
+    //     };
+    // }
+
+
+    /**
+     * Reset Device  
+     * 
+    */
+
+    @Post(':deviceId/checkStatus')
+    @Permission(PERMISSIONS.DEVICE_UPDATE)
+    async checkDeviceOnline(@Param('deviceId') id: number) {
+        return await this.devicesService.checkDeviceOnline(id)
+    }
 }
