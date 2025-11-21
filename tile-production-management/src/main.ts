@@ -1,8 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
+import cookieParser from 'cookie-parser';
+import type { DeviceExtraInfo } from './common/mqtt/device-extra-info';
+import { ValidationPipe } from '@nestjs/common';
 
-// Device data cho PX-01, DC-01
+// Dữ liệu thiết bị mẫu cho PX-01, 2 dây chuyền
 const DEVICES_DATA = [
     {
         name: 'Sau máy ép 1',
@@ -70,12 +73,12 @@ const DEVICES_DATA = [
     },
 ];
 
-// Cac loai gach co ban dung cho seed
+// Các loại gạch cơ bản (seed cho bảng brick_types)
 const baseProduct = {
     brickTypes: [
         {
             name: '300x600mm',
-            description: 'Gach op lat 300x600mm',
+            description: 'Gạch ốp lát 300x600mm',
             unit: 'm2',
             specs: {
                 width: 300,
@@ -85,7 +88,7 @@ const baseProduct = {
         },
         {
             name: '400x800mm',
-            description: 'Gach op lat 400x800mm',
+            description: 'Gạch ốp lát 400x800mm',
             unit: 'm2',
             specs: {
                 width: 400,
@@ -95,7 +98,7 @@ const baseProduct = {
         },
         {
             name: '600x600mm',
-            description: 'Gach op lat 600x600mm',
+            description: 'Gạch ốp lát 600x600mm',
             unit: 'm2',
             specs: {
                 width: 600,
@@ -105,250 +108,271 @@ const baseProduct = {
         },
     ],
 };
+
+async function seedBrickTypes(dataSource: DataSource) {
+    console.log('🔁 Seeding base brick types...');
+    for (const bt of baseProduct.brickTypes) {
+        const existing = await dataSource.query(
+            `SELECT id FROM brick_types WHERE name = $1 LIMIT 1`,
+            [bt.name],
+        );
+        if (existing && existing.length > 0) {
+            continue;
+        }
+        await dataSource.query(
+            `INSERT INTO brick_types (name, description, unit, specs, "isActive") 
+             VALUES ($1, $2, $3, $4, false)`,
+            [bt.name, bt.description, bt.unit, JSON.stringify(bt.specs)],
+        );
+    }
+}
+
+async function seedMeasurementTypes(dataSource: DataSource): Promise<number> {
+    console.log('🔁 Seeding measurement types...');
+    const code = 'BRICK_COUNTER';
+
+    const existing = await dataSource.query(
+        `SELECT id FROM measurement_types WHERE code = $1 LIMIT 1`,
+        [code],
+    );
+
+    if (existing && existing.length > 0) {
+        return existing[0].id as number;
+    }
+
+    const schema = {
+        type: 'object',
+        properties: {
+            ts: { type: 'string', format: 'date-time' },
+            metrics: {
+                type: 'object',
+                properties: {
+                    count: { type: 'number' },
+                    err_count: { type: 'number' },
+                },
+                required: ['count'],
+                additionalProperties: true,
+            },
+            quality: {
+                type: 'object',
+                properties: {
+                    rssi: { type: 'number' },
+                },
+                additionalProperties: true,
+            },
+        },
+        required: ['metrics'],
+        additionalProperties: true,
+    };
+
+    const result = await dataSource.query(
+        `INSERT INTO measurement_types (code, name, data_schema, data_schema_version, description)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id`,
+        [
+            code,
+            'Đếm gạch (counter)',
+            JSON.stringify(schema),
+            1,
+            'Schema cho thiết bị đếm gạch BRICK_COUNTER',
+        ],
+    );
+
+    const id = result[0].id as number;
+    console.log(`✅ Created measurement_type BRICK_COUNTER (ID: ${id})`);
+    return id;
+}
+
+async function seedDeviceCluster(
+    dataSource: DataSource,
+    measurementTypeId: number,
+    productionLineId?: number,
+): Promise<number> {
+    console.log('🔁 Seeding device cluster...');
+    const code = 'BRICK_COUNTER';
+
+    const existing = await dataSource.query(
+        `SELECT id FROM devices_cluster WHERE code = $1 LIMIT 1`,
+        [code],
+    );
+
+    if (existing && existing.length > 0) {
+        return existing[0].id as number;
+    }
+
+    const clusterConfig = {
+        qosDefault: 1,
+        interval_message_time: 60,
+        telemetry: {
+            topic: '/devices/{deviceId}/telemetry',
+            qos: 1,
+        },
+        commands: [
+            {
+                code: 'reset',
+                name: 'Reset thiết bị',
+                topic: '/devices/{deviceId}/commands/reset',
+                payloadTemplate: { action: 'reset' },
+            },
+            {
+                code: 'reset_counter',
+                name: 'Reset counter',
+                topic: '/devices/{deviceId}/commands/reset_counter',
+                payloadTemplate: { action: 'reset_counter' },
+            },
+        ],
+        other: {
+            note: 'Cụm mặc định cho thiết bị đếm gạch',
+        },
+    };
+
+    const result = await dataSource.query(
+        `INSERT INTO devices_cluster (name, code, description, config, measurement_type_id, "production_line_id")
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id`,
+        [
+            'Cụm Brick Counter',
+            code,
+            'Cụm cấu hình mặc định cho thiết bị đếm gạch',
+            JSON.stringify(clusterConfig),
+            measurementTypeId,
+            productionLineId ?? null,
+        ],
+    );
+
+    const id = result[0].id as number;
+    console.log(`✅ Created device_cluster BRICK_COUNTER (ID: ${id})`);
+    return id;
+}
+
 async function seedDevices(dataSource: DataSource) {
-    console.log('🚀 Auto-seeding devices for PX-01, DC-01...\n');
+    console.log('🔁 Auto-seeding devices for PX-01, DC-01...\n');
     try {
+        await seedBrickTypes(dataSource);
+
         // 1. Tìm hoặc tạo Workshop PX-01
+        const workshopName = 'Phân xưởng 1';
         let workshop = await dataSource.query(
-            `SELECT id, name FROM workshops WHERE name ILIKE '%phân xưởng 1%' OR name ILIKE '%PX-01%' OR name ILIKE '%PX01%' LIMIT 1`
+            `SELECT id, name FROM workshops WHERE name = $1 LIMIT 1`,
+            [workshopName],
         );
 
-        let workshopId;
+        let workshopId: number;
         if (!workshop || workshop.length === 0) {
-            console.log('📝 Creating Workshop PX-01...');
+            console.log('➕ Creating Workshop PX-01...');
             const result = await dataSource.query(
-                `INSERT INTO workshops (name, location) VALUES ('Phân xưởng 1', 'Nhà máy chính') RETURNING id, name`
+                `INSERT INTO workshops (name, location) VALUES ($1, $2) RETURNING id, name`,
+                [workshopName, 'Nhà máy chính'],
             );
             workshopId = result[0].id;
             console.log(`✅ Created Workshop: ${result[0].name} (ID: ${workshopId})\n`);
-
         } else {
             workshopId = workshop[0].id;
             console.log(`✅ Found Workshop: ${workshop[0].name} (ID: ${workshopId})\n`);
         }
 
-        // DELETE FROM THIS IN PRODUCT TO ...
-        let workshopId2;
-        if (!workshop || workshop.length === 0) {
-            console.log('📝 Creating Workshop PX-01...');
-            const result = await dataSource.query(
-                `INSERT INTO workshops (name, location) VALUES ('Phân xưởng 2', 'Nhà máy phụ') RETURNING id, name`
-            );
-            workshopId2 = result[0].id;
-            console.log(`✅ Created Workshop: ${result[0].name} (ID: ${workshopId})\n`);
+        // 2. Tìm hoặc tạo 2 dây chuyền cho PX-01
+        const lineNames = ['Dây chuyền 1', 'Dây chuyền 2'];
+        const lineIds: number[] = [];
 
-        } else {
-            workshopId2 = workshop[0].id;
-            console.log(`✅ Found Workshop: ${workshop[0].name} (ID: ${workshopId})\n`);
-        }
-        // DELELE END!
-
-        // 1.5 Seed cac BrickType co ban
-        for (const bt of baseProduct.brickTypes) {
-            await dataSource.query(
-                `INSERT INTO brick_types (name, description, unit, specs)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (name) DO NOTHING`,
-                [bt.name, bt.description, bt.unit, bt.specs],
-            );
-        }
-
-        const defaultBrick = baseProduct.brickTypes[0];
-        const brickRows = await dataSource.query(
-            `SELECT id FROM brick_types WHERE name = $1 LIMIT 1`,
-            [defaultBrick.name],
-        );
-        const brickTypeId: number | undefined = brickRows[0]?.id;
-
-        // 2. Tim hoac tao Production Line DC-01
-        const existingLines = await dataSource.query(
-            `SELECT id, name FROM production_lines
-       WHERE (name ILIKE $1 OR name ILIKE $2 OR name ILIKE $3)
-         AND "workshopId" = $4
-       LIMIT 1`,
-            ['%Day chuyen 1%', '%DC-01%', '%DC01%', workshopId],
-        );
-
-        let productionLineId: number;
-        if (!existingLines || existingLines.length === 0) {
-            console.log('Creating Production Line DC-01...');
-            const result = await dataSource.query(
-                `INSERT INTO production_lines (name, description, capacity, "workshopId", "activeBrickTypeId")
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, name`,
-                [
-                    'Dây chuyền 1',
-                    'Dây chuyền sản xuất số 1',
-                    10000,
-                    workshopId,
-                    brickTypeId ?? null,
-                ],
+        for (const lineName of lineNames) {
+            const existing = await dataSource.query(
+                `SELECT id FROM production_lines WHERE name = $1 AND "workshopId" = $2 LIMIT 1`,
+                [lineName, workshopId],
             );
 
-
-            productionLineId = result[0].id;
-            console.log(
-                `Created Production Line: ${result[0].name} (ID: ${productionLineId})\n`,
-            );
-        } else {
-            productionLineId = existingLines[0].id;
-            console.log(
-                `Found Production Line: ${existingLines[0].name} (ID: ${productionLineId})\n`,
-            );
-
-            if (brickTypeId) {
-                await dataSource.query(
-                    `UPDATE production_lines
-           SET "activeBrickTypeId" = $1
-           WHERE id = $2 AND "activeBrickTypeId" IS NULL`,
-                    [brickTypeId, productionLineId],
+            if (existing && existing.length > 0) {
+                lineIds.push(existing[0].id);
+                console.log(`✅ Found production line: ${lineName} (ID: ${existing[0].id})`);
+            } else {
+                const result = await dataSource.query(
+                    `INSERT INTO production_lines (name, "workshopId", status) 
+                     VALUES ($1, $2, 'active') RETURNING id`,
+                    [lineName, workshopId],
                 );
+                lineIds.push(result[0].id);
+                console.log(`➕ Created production line: ${lineName} (ID: ${result[0].id})`);
             }
         }
 
-        // DELETE FROM THIS IN PRODUCT TO ...
-        let productionLineId2
-        const productionLineId2Res = await dataSource.query(
-            `INSERT INTO production_lines (name, description, capacity, "workshopId", "activeBrickTypeId")
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, name`,
-            [
-                'Dây chuyền 1',
-                'Dây chuyền sản xuất số 1',
-                10000,
-                workshopId,
-                brickTypeId ?? null,
-            ],
-        );
+        // 3. Seed measurement_type + device_cluster (gắn với dây chuyền đầu tiên)
+        const measurementTypeId = await seedMeasurementTypes(dataSource);
+        const clusterId = await seedDeviceCluster(dataSource, measurementTypeId, lineIds[0]);
 
+        // 4. Seed vị trí + thiết bị cho từng dây chuyền
+        for (const productionLineId of lineIds) {
+            console.log(`➡️  Seeding devices for production line #${productionLineId}...`);
+            let positionIndex = 1;
 
-        productionLineId2 = productionLineId2Res[0].id;
-        console.log(
-            `Created Production Line: ${productionLineId2Res[0].name} (ID: ${productionLineId2})\n`,
-        );
-        await dataSource.query(
-            `INSERT INTO production_lines (name, description, capacity, "workshopId", "activeBrickTypeId")
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, name`,
-            [
-                'Dây chuyền 1',
-                'Dây chuyền sản xuất số 1 nhà máy 2',
-                10000,
-                workshopId,
-                brickTypeId ?? null,
-            ],
-        );
-        // DELELE END!
-
-
-        // 3. Tạo Positions và Devices
-        console.log('📦 Creating positions and devices...\n');
-
-        let position_index = 1
-        // // UNCOMMENT FROM HERE IN PRODUCT...
-        // for (const deviceData of DEVICES_DATA) {
-        //     // Kiểm tra device đã tồn tại chưa
-        //     const existingDevice = await dataSource.query(
-        //         `SELECT id FROM devices WHERE "deviceId" = $1 LIMIT 1`,
-        //         [deviceData.deviceId]
-        //     );
-
-        //     if (existingDevice && existingDevice.length > 0) {
-        //         console.log(`   ✓ Device already exists: ${deviceData.deviceId}`);
-        //         continue;
-        //     }
-
-        //     console.log(`   Processing: ${deviceData.name} (${deviceData.deviceId})`);
-
-        //     // Kiểm tra position đã tồn tại chưa
-        //     let position = await dataSource.query(
-        //         `SELECT id FROM positions WHERE name = $1 AND "productionLineId" = $2 LIMIT 1`,
-        //         [deviceData.position, productionLineId]
-        //     );
-
-        //     let positionId;
-
-        //     if (!position || position.length === 0) {
-        //         // Tạo position mới
-        //         const result = await dataSource.query(
-        //             `INSERT INTO positions (name, description, "productionLineId", index) 
-        //    VALUES ($1, $2, $3, $4) RETURNING id`,
-        //             [deviceData.position, `Vị trí ${deviceData.position}`, productionLineId, position_index++]
-        //         );
-        //         positionId = result[0].id;
-        //         console.log(`      ✓ Created position: ${deviceData.position} (ID: ${positionId})`);
-        //     } else {
-        //         positionId = position[0].id;
-        //     }
-        //     const extraInfo: DeviceExtraInfo = {
-        //         interval_message_time: 60,
-        //         sub_topic: `devices/${deviceData.deviceId}/telemetry`,
-        //         qosDefault: 1,
-        //     }
-        //     // Tạo device mới
-        //     await dataSource.query(
-        //         `INSERT INTO devices ("deviceId", name, type, serial_number, status, "positionId", installation_date, "extraInfo") 
-        //  VALUES ($1, $2, $3, $4, 'online', $5, CURRENT_DATE, $6)`,
-        //         [deviceData.deviceId, deviceData.name, deviceData.type, deviceData.serial_number, positionId, JSON.stringify(extraInfo)]
-        //     );
-
-        //     console.log(`      ✓ Created device: ${deviceData.deviceId}`);
-        // }
-        // // END UNCOMMENT!
-
-        // DELETE FROM HERE IN PRODUCT...
-        for (let prline = 1; prline < 3; prline++) {
             for (const deviceData of DEVICES_DATA) {
                 // Kiểm tra device đã tồn tại chưa
                 const existingDevice = await dataSource.query(
                     `SELECT id FROM devices WHERE "deviceId" = $1 LIMIT 1`,
-                    [deviceData.deviceId]
+                    [deviceData.deviceId],
                 );
 
                 if (existingDevice && existingDevice.length > 0) {
-                    console.log(`   ✓ Device already exists: ${deviceData.deviceId}`);
+                    console.log(`   • Device already exists: ${deviceData.deviceId}`);
                     continue;
                 }
 
-                console.log(`   Processing: ${deviceData.name} (${deviceData.deviceId})`);
+                console.log(`   → Processing: ${deviceData.name} (${deviceData.deviceId})`);
 
                 // Kiểm tra position đã tồn tại chưa
                 let position = await dataSource.query(
                     `SELECT id FROM positions WHERE name = $1 AND "productionLineId" = $2 LIMIT 1`,
-                    [deviceData.position, productionLineId]
+                    [deviceData.position, productionLineId],
                 );
 
-                let positionId;
+                let positionId: number;
 
                 if (!position || position.length === 0) {
                     // Tạo position mới
                     const result = await dataSource.query(
                         `INSERT INTO positions (name, description, "productionLineId", index) 
-           VALUES ($1, $2, $3, $4) RETURNING id`,
-                        [deviceData.position, `Vị trí ${deviceData.position}`, prline, position_index++]
+                         VALUES ($1, $2, $3, $4) RETURNING id`,
+                        [
+                            deviceData.position,
+                            deviceData.description || `Vị trí ${deviceData.position}`,
+                            productionLineId,
+                            positionIndex++,
+                        ],
                     );
                     positionId = result[0].id;
-                    console.log(`      ✓ Created position: ${deviceData.position} (ID: ${positionId})`);
+                    console.log(
+                        `      ✓ Created position: ${deviceData.position} (ID: ${positionId})`,
+                    );
                 } else {
                     positionId = position[0].id;
                 }
+
                 const extraInfo: DeviceExtraInfo = {
                     interval_message_time: 60,
-                    sub_topic: `devices/${deviceData.deviceId}/telemetry`,
-                    qosDefault: 1,
-                }
-                // Tạo device mới
+                    telemetry: {
+                        topic: `devices/${deviceData.deviceId}/telemetry`,
+                        qos: 1,
+                    },
+                };
+
                 await dataSource.query(
-                    `INSERT INTO devices ("deviceId", name, type, serial_number, status, "positionId", installation_date, "extraInfo") 
-         VALUES ($1, $2, $3, $4, 'online', $5, CURRENT_DATE, $6)`,
-                    [deviceData.deviceId, deviceData.name, deviceData.type, deviceData.serial_number, positionId, JSON.stringify(extraInfo)]
+                    `INSERT INTO devices ("deviceId", name, type, serial_number, status, "positionId", installation_date, "extraInfo", "cluster_id") 
+                     VALUES ($1, $2, $3, $4, 'online', $5, CURRENT_DATE, $6, $7)`,
+                    [
+                        deviceData.deviceId,
+                        deviceData.name,
+                        deviceData.type,
+                        deviceData.serial_number,
+                        positionId,
+                        JSON.stringify(extraInfo),
+                        clusterId,
+                    ],
                 );
 
                 console.log(`      ✓ Created device: ${deviceData.deviceId}`);
             }
-        }
-        // END DELETE!
 
+            console.log('');
+        }
 
         console.log('\n✅ Device seeding completed!\n');
     } catch (error) {
@@ -356,8 +380,6 @@ async function seedDevices(dataSource: DataSource) {
     }
 }
 
-import cookieParser from 'cookie-parser'
-import { DeviceExtraInfo } from './devices/entities/device.entity';
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.setGlobalPrefix('api');
@@ -370,12 +392,18 @@ async function bootstrap() {
     });
 
     // App use CookieParser
-    app.use(cookieParser())
+    app.use(cookieParser());
 
     // Auto-seed devices on startup
     const dataSource = app.get(DataSource);
     await seedDevices(dataSource);
-
+    // Validator Request Body Pipe 
+    // app.useGlobalPipes(new ValidationPipe({
+    //     whitelist: true,
+    //     forbidNonWhitelisted: true,
+    //     transform: true,
+    // }));
     await app.listen(process.env.PORT ?? 5555);
 }
 bootstrap();
+

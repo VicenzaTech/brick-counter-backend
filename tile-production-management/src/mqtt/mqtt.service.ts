@@ -52,24 +52,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         (deviceId: string, data: MqttMessage) => Promise<void>
     > = new Map();
 
-<<<<<<< HEAD
     private healthHandlers: Map<
         string,
         (deviceId: string, data: MqttMessage) => Promise<void>
     > = new Map();
-=======
-  // Cache device -> production line mapping
-  private deviceLineCache: Map<string, string> = new Map();
-  
-  // Cache device -> brick type mapping
-  private deviceBrickTypeCache: Map<string, string> = new Map();
-  
-  // Cache last count per device to detect resets
-  private lastCountCache: Map<string, number> = new Map();
-  
-  // Cache last logged count to detect if count changed (avoid logging duplicates)
-  private lastLoggedCountCache: Map<string, number> = new Map();
->>>>>>> main
 
     // Cache device -> production line mapping
     private deviceLineCache: Map<string, string> = new Map();
@@ -100,144 +86,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
             const brokerUrl = `mqtt://${host}:${port}`;
 
-<<<<<<< HEAD
             this.logger.log(`🔌 Đang kết nối đến MQTT broker: ${brokerUrl}`);
-=======
-  /**
-   * Ghi log telemetry vào file theo ngày
-   * Cấu trúc: logs/{YYYY-MM-DD}/{production-line}/{brick-type}/{device-position}/{deviceId}_timestamp.txt
-   * 
-   * Logic:
-   * - Không ghi log nếu count không đổi (tránh spam khi dây chuyền dừng)
-   * - Tạo file mới khi: reset, đổi dòng gạch, hoặc file đầu tiên của ngày
-   */
-  private async writeDeviceLog(
-    deviceId: string,
-    messageData: MqttMessage,
-    timestamp: number,
-  ): Promise<void> {
-    try {
-      const currentCount = messageData.metrics?.count;
-      if (currentCount === undefined || currentCount === null) {
-        return; // Skip if no count data
-      }
-
-      // Kiểm tra nếu count không đổi so với lần log trước → SKIP
-      const lastLoggedCount = this.lastLoggedCountCache.get(deviceId);
-      if (lastLoggedCount !== undefined && currentCount === lastLoggedCount) {
-        this.logger.debug(`⏭️  Skip logging ${deviceId}: count unchanged (${currentCount})`);
-        return; // Không ghi log khi count không đổi
-      }
-
-      // Lấy ngày hiện tại (YYYY-MM-DD)
-      const date = new Date(timestamp);
-      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
-      
-      // Parse deviceId để lấy thông tin (ví dụ: SAU-ME-01)
-      const deviceParts = deviceId.split('-');
-      let devicePosition = deviceId.toLowerCase();
-      
-      // Tạo tên vị trí thiết bị
-      if (deviceParts.length >= 2) {
-        const position = deviceParts.slice(0, -1).join('-').toLowerCase(); // sau-me, truoc-ln, ...
-        devicePosition = position;
-      }
-      
-      // Lấy production line và brick type từ cache
-      const productionLine = this.deviceLineCache.get(deviceId) || 'DC-01';
-      const brickType = this.deviceBrickTypeCache.get(deviceId) || 'no-brick-type';
-      
-      // 🛑 DỪNG GHI LOG nếu đang tạm dừng sản xuất (activeBrickTypeId = null)
-      if (brickType === 'no-brick-type') {
-        this.logger.debug(`⏸️  Skip logging for ${deviceId}: production paused (no active brick type)`);
-        return;
-      }
-      
-      // Tạo đường dẫn thư mục: logs/{date}/{production-line}/{brick-type}/{device-position}
-      const logsDir = path.join(
-        process.cwd(), 
-        'logs', 
-        dateStr, 
-        productionLine, 
-        brickType,
-        devicePosition
-      );
-      
-      // Tạo thư mục nếu chưa tồn tại
-      if (!fs.existsSync(logsDir)) {
-        fs.mkdirSync(logsDir, { recursive: true });
-      }
-      
-      // Kiểm tra các điều kiện tạo file mới
-      const lastCount = this.lastCountCache.get(deviceId);
-      const lastBrickType = this.deviceBrickTypeCache.get(`${deviceId}_last`);
-      
-      let isReset = false;
-      let isBrickTypeChanged = false;
-      
-      // 1. Kiểm tra reset (count giảm xuống)
-      if (lastCount !== undefined && currentCount < lastCount) {
-        isReset = true;
-        this.logger.log(`🔄 Device ${deviceId} reset detected: ${lastCount} → ${currentCount}`);
-      }
-      
-      // 2. Kiểm tra thay đổi dòng gạch
-      if (lastBrickType && lastBrickType !== brickType) {
-        isBrickTypeChanged = true;
-        this.logger.log(`🔄 Device ${deviceId} brick type changed: ${lastBrickType} → ${brickType}`);
-      }
-      
-      // Cập nhật cache
-      this.lastCountCache.set(deviceId, currentCount);
-      this.lastLoggedCountCache.set(deviceId, currentCount);
-      this.deviceBrickTypeCache.set(`${deviceId}_last`, brickType);
-      
-      // Tên file
-      let logFilePath: string;
-      const shouldCreateNewFile = isReset || isBrickTypeChanged;
-      
-      if (shouldCreateNewFile) {
-        // Tạo file mới với timestamp
-        const timestampSuffix = date.toISOString().replace(/[-:]/g, '').split('.')[0]; // YYYYMMDDTHHmmss
-        logFilePath = path.join(logsDir, `${deviceId.toLowerCase()}_${timestampSuffix}.txt`);
-        
-        if (isReset) {
-          this.logger.log(`📄 Creating new log file after reset: ${logFilePath}`);
-        } else if (isBrickTypeChanged) {
-          this.logger.log(`📄 Creating new log file after brick type change: ${logFilePath}`);
-        }
-      } else {
-        // Tìm file mới nhất để append
-        const existingFiles = fs.existsSync(logsDir) 
-          ? fs.readdirSync(logsDir)
-              .filter(f => f.startsWith(deviceId.toLowerCase()) && f.endsWith('.txt'))
-              .sort()
-              .reverse()
-          : [];
-        
-        if (existingFiles.length > 0) {
-          logFilePath = path.join(logsDir, existingFiles[0]);
-        } else {
-          // File đầu tiên trong ngày/brick-type
-          const timestampSuffix = date.toISOString().replace(/[-:]/g, '').split('.')[0];
-          logFilePath = path.join(logsDir, `${deviceId.toLowerCase()}_${timestampSuffix}.txt`);
-          this.logger.log(`📄 Creating first log file: ${logFilePath}`);
-        }
-      }
-      
-      // Format log entry
-      const timestampStr = date.toISOString();
-      const logEntry = `[${timestampStr}] Count: ${currentCount}\n`;
-      
-      // Ghi vào file (append mode)
-      fs.appendFileSync(logFilePath, logEntry, 'utf-8');
-      
-      this.logger.debug(`📝 Logged to file: ${logFilePath}`);
-    } catch (error) {
-      this.logger.error(`❌ Error writing device log: ${error.message}`, error.stack);
-    }
-  }
->>>>>>> main
 
             this.client = mqtt.connect(brokerUrl, {
                 username,
@@ -262,52 +111,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
                 this.logger.warn('📴 MQTT client is offline');
             });
 
-<<<<<<< HEAD
-=======
-  /**
-   * Set device to brick type mapping (được gọi từ telemetry handler)
-   */
-  setDeviceBrickTypeMapping(deviceId: string, brickTypeName: string): void {
-    // Sanitize brick type name for folder structure
-    const sanitizedName = brickTypeName
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-    
-    this.deviceBrickTypeCache.set(deviceId, sanitizedName || 'no-brick-type');
-  }
-
-  /**
-   * Dispatch message đến các handlers với message queue
-   */
-  private async dispatchToHandlers(
-    deviceId: string,
-    messageType: string,
-    messageData: MqttMessage,
-    timestamp: number,
-  ): Promise<void> {
-    // Xử lý telemetry messages
-    if (messageType === 'telemetry') {
-      this.logger.log(`🔄 Dispatching telemetry for device: ${deviceId} to ${this.telemetryHandlers.size} handlers`);
-      
-      // Process với tất cả telemetry handlers TRƯỚC để set brick type mapping
-      for (const [handlerName, handler] of this.telemetryHandlers) {
-        try {
-          await this.messageQueue.processOrdered(
-            deviceId,
-            timestamp,
-            messageData,
-            handler,
-            `telemetry_${handlerName}`,
-          );
-          this.logger.debug(`✅ Telemetry dispatched to handler: ${handlerName}`);
->>>>>>> main
         } catch (error) {
             this.logger.error(`❌ Lỗi kết nối MQTT: ${error.message}`, error.stack);
             throw error;
         }
-<<<<<<< HEAD
     }
 
     /**
@@ -372,33 +179,6 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
             this.logger.error(`❌ Lỗi xử lý message: ${error.message}`, error.stack);
         }
-=======
-      }
-      
-      // GHI LOG VÀO FILE SAU KHI handler đã set brick type mapping
-      await this.writeDeviceLog(deviceId, messageData, timestamp);
-
-    // Xử lý health messages
-    // if (messageType === 'health') {  
-    //   this.logger.log(`🔄 Dispatching health for device: ${deviceId} to ${this.healthHandlers.size} handlers`);
-    //   // Process với tất cả health handlers
-    //   for (const [handlerName, handler] of this.healthHandlers) {
-    //     try {
-    //       await this.messageQueue.processWithLock(
-    //         deviceId,
-    //         messageData,
-    //         handler,
-    //         `health_${handlerName}`,
-    //       );
-    //       this.logger.debug(`✅ Health dispatched to handler: ${handlerName}`);
-    //     } catch (error) {
-    //       this.logger.error(
-    //         `❌ Error dispatching health to ${handlerName}: ${error.message}`,
-    //         error.stack,
-    //       );
-    //     }
-    //   }
->>>>>>> main
     }
 
     /**

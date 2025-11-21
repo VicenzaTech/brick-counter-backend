@@ -59,38 +59,43 @@ export class PositionsService {
         });
 
         if (!position) throw new NotFoundException('Position not found');
-        const oldLineId = position.productionLine.id;
-        const newLineId = dto.productionLineId ?? oldLineId;
 
+        const oldLineId = position.productionLine.id;
         const oldIndex = position.index;
         const newIndex = dto.index ?? oldIndex;
 
-        if (oldLineId !== newLineId) {
-            await this.positionRepository
-                .createQueryBuilder()
-                .update()
-                .set({ index: () => `"index" - 1"` })
-                .where(`"productionLineId" = :line`, { line: oldLineId })
-                .andWhere(`"index" > :oldIndex`, { oldIndex })
-                .execute();
+        // Không thay đổi production line, chỉ thay đổi index (và thông tin mô tả)
+        if (newIndex !== oldIndex) {
+            const isIncrease = newIndex > oldIndex;
 
-            const lastPos = await this.positionRepository.findOne({
-                where: { productionLine: { id: newLineId } },
-                order: { index: 'DESC' },
-                select: { index: true },
-            });
-
-            const assignedIndex = newIndex ?? (lastPos ? lastPos.index + 1 : 1);
-
-            Object.assign(position, dto, {
-                index: assignedIndex,
-                productionLine: { id: newLineId },
-            });
-
-            return this.positionRepository.save(position);
+            if (isIncrease) {
+                await this.positionRepository
+                    .createQueryBuilder()
+                    .update()
+                    .set({ index: () => `"index" - 1"` })
+                    .where(`"productionLineId" = :line`, { line: oldLineId })
+                    .andWhere(`"index" > :oldIndex`, { oldIndex })
+                    .andWhere(`"index" <= :newIndex`, { newIndex })
+                    .execute();
+            } else {
+                await this.positionRepository
+                    .createQueryBuilder()
+                    .update()
+                    .set({ index: () => `"index" + 1"` })
+                    .where(`"productionLineId" = :line`, { line: oldLineId })
+                    .andWhere(`"index" < :oldIndex`, { oldIndex })
+                    .andWhere(`"index" >= :newIndex`, { newIndex })
+                    .execute();
+            }
         }
 
-        Object.assign(position, dto);
+        // Cập nhật name / description / coordinates, giữ nguyên productionLine
+        Object.assign(position, {
+            name: dto.name ?? position.name,
+            description: dto.description ?? position.description,
+            coordinates: dto.coordinates ?? position.coordinates,
+            index: newIndex,
+        });
 
         return this.positionRepository.save(position);
     }

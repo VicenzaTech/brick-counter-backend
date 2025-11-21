@@ -33,7 +33,7 @@ export class PartitionManagerMinuteService implements OnApplicationBootstrap {
         }
     }
 
-    @Cron("*/1 * * * *")
+    @Cron(CronExpression.EVERY_HOUR)
     async handleMinutePartitionCheck() {
         if (!this.enabled) {
             return;
@@ -62,7 +62,7 @@ export class PartitionManagerMinuteService implements OnApplicationBootstrap {
 
         for (let offset = 0; offset <= extraMinutes; offset++) {
             const fromDate = new Date(now.getTime() + offset * 60_000);
-            const toDate = new Date(fromDate.getTime() + (30 * 24 * 60 * 60_000)); // +30 ngày
+            const toDate = new Date(fromDate.getTime() + (1 * 60 * 60_000)); // +1 giờ
 
             const year = fromDate.getFullYear();
             const month = fromDate.getMonth() + 1;

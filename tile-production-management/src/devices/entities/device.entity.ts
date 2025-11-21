@@ -1,17 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    ManyToOne,
+    OneToMany,
+    JoinColumn,
+} from 'typeorm';
 import { Position } from '../../positions/entities/position.entity';
-import { Production } from '../../productions/entities/production.entity';
-import { MaintenanceLog } from '../../maintenance-logs/entities/maintenance-log.entity';
-
-export interface DeviceExtraInfo {
-    qosDefault?: 0 | 1 | 2;
-    interval_message_time?: number;
-    sub_topic?: string; // topic to received telemetry 
-    pub_topic?: {
-        url: string,
-        type: string | 'reset' | 'reset_counter'
-    } // topic to send cmd to devices
-}
+import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
+import { Measurement } from 'src/measurement/entities/measurement.entity';
+import type { DeviceExtraInfo } from 'src/common/mqtt/device-extra-info';
 
 @Entity('devices')
 export class Device {
@@ -40,17 +38,24 @@ export class Device {
     last_maintenance?: string;
 
     @Column({ type: 'jsonb', nullable: true })
-    extraInfo: DeviceExtraInfo;
+    extraInfo: DeviceExtraInfo | null;
 
-    @ManyToOne(() => Position, (pos) => pos.devices)
-    position: Position;
+    @ManyToOne(() => Position, (pos) => pos.devices, { nullable: true })
+    position: Position | null;
 
-    @OneToMany(() => Production, (prod) => prod.device)
-    productions: Production[];
+    @Column({ name: 'cluster_id', type: 'int', nullable: true })
+    clusterId: number | null;
 
-    @OneToMany(() => MaintenanceLog, (log) => log.device)
-    maintenances: MaintenanceLog[];
-    
-    // devices_task
-    // devices_cluster
+    @ManyToOne(() => DeviceCluster, (cluster) => cluster.devices, {
+        onDelete: 'SET NULL',
+        nullable: true,
+    })
+    @JoinColumn({ name: 'cluster_id' })
+    cluster: DeviceCluster | null;
+
+    @Column({ type: 'timestamptz', name: 'last_seen_at', nullable: true })
+    lastSeenAt?: Date;
+
+    @OneToMany(() => Measurement, (m) => m.device)
+    measurements: Measurement[];
 }

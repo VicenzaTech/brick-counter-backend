@@ -42,14 +42,14 @@ export class ProductionLinesService {
 
     async findAll(): Promise<ProductionLine[]> {
         return await this.productionLineRepository.find({
-            relations: ['positions', 'summaries', 'maintenances', 'activeBrickType', 'positions.devices'],
+            relations: ['positions', 'activeBrickType', 'positions.devices'],
         });
     }
 
     async findOne(id: number): Promise<ProductionLine> {
         const productionLine = await this.productionLineRepository.findOne({
             where: { id },
-            relations: ['positions', 'summaries', 'maintenances', 'activeBrickType'],
+            relations: ['positions', 'activeBrickType'],
         });
 
         if (!productionLine) {
@@ -66,7 +66,7 @@ export class ProductionLinesService {
                     id: workshopId
                 }
             },
-            relations: ['positions', 'summaries', 'maintenances', 'devices'],
+            relations: ['positions', 'devices'],
         })
         // config cache here
 

@@ -36,6 +36,10 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { PartitionManagerModule } from './partition-manager/partition-manager.module';
 import { MeasurementModule } from './measurement/measurement.module';
 import { Measurement } from './measurement/entities/measurement.entity';
+import { DeviceCluster } from './device-clusters/entities/device-cluster.entity';
+import { MeasurementType } from './measurement-types/entities/measurement-types.entity';
+import { DeviceClustersModule } from './device-clusters/device-clusters.module';
+import { MeasurementTypesModule } from './measurement-types/measurement-types.module';
 
 @Module({
     imports: [
@@ -61,22 +65,21 @@ import { Measurement } from './measurement/entities/measurement.entity';
                 Position,
                 Device,
                 DeviceTelemetry,
-                DeviceTelemetryLog,
                 BrickType,
-                Production,
                 ProductionSummary,
                 ProductionShiftSummary,
                 ProductionDailySummary,
-                MaintenanceLog,
                 ProductionMetric,
                 QuotaTarget,
                 User,
                 Role,
                 Permission,
-                Measurement
-            ],  
-            synchronize: false, // Set to true to auto-create tables (development/staging only)
-            // migrationsRun: true
+                DeviceCluster,
+                Measurement,
+                MeasurementType,
+            ],
+            synchronize: true, // Set to true to auto-create tables (development/staging only)
+            migrationsRun: true // Set to true when initial db
         }),
         // MQTT and WebSocket modules
         MqttModule,
@@ -86,7 +89,6 @@ import { Measurement } from './measurement/entities/measurement.entity';
         ProductionLinesModule,
         PositionsModule,
         DevicesModule,
-        ProductionsModule,
         BrickTypesModule,
         ProductionMetricsModule,
         ProductionSummariesModule,
@@ -99,6 +101,8 @@ import { Measurement } from './measurement/entities/measurement.entity';
         AnalyticsModule,
         PartitionManagerModule,
         MeasurementModule,
+        DeviceClustersModule,
+        MeasurementTypesModule
     ],
     providers: [],
 })

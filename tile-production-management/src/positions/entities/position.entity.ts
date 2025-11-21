@@ -3,12 +3,6 @@ import { ProductionLine } from '../../production-lines/entities/production-line.
 import { Device } from '../../devices/entities/device.entity';
 import { Min } from 'class-validator';
 
-type POSITION_COORDINATES = {
-    x: number,
-    y: number,
-    z: number
-}
-
 @Entity('positions')
 export class Position {
     @PrimaryGeneratedColumn()
@@ -20,14 +14,8 @@ export class Position {
     @Column({ nullable: true })
     description?: string;
 
-    @Column({
-        nullable: true, default: {
-            x: 0,
-            y: 0,
-            z: 0
-        }
-    })
-    coordinates?: POSITION_COORDINATES;
+    @Column({ type: String, nullable: true })
+    coordinates?: string;
 
     @Column({ type: 'int', default: 1 })
     @Min(1)

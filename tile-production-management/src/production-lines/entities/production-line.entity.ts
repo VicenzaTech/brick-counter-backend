@@ -4,6 +4,7 @@ import { Position } from '../../positions/entities/position.entity';
 import { ProductionSummary } from '../../production-summaries/entities/production-summary.entity';
 import { ProductionMetric } from '../../production-metrics/entities/production-metric.entity';
 import { BrickType } from '../../brick-types/entities/brick-type.entity';
+import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
 
 @Entity('production_lines')
 export class ProductionLine {
@@ -44,4 +45,7 @@ export class ProductionLine {
 
   @OneToMany(() => ProductionMetric, (metric) => metric.productionLine)
   metrics: ProductionMetric[];
+
+  @OneToMany(() => DeviceCluster, (cluster) => cluster.productionLine)
+  deviceClusters: DeviceCluster[];
 }

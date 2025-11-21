@@ -3,12 +3,12 @@ import {
     Get,
     Post,
     Body,
-    Put,
     Param,
     Delete,
     HttpCode,
     HttpStatus,
     UseGuards,
+    Patch,
 } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { DevicesMqttHandler } from './devices-mqtt.handler';
@@ -21,6 +21,7 @@ import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 
 @Controller('devices')
+@UseGuards(AuthGuard, PermissionGuard)
 export class DevicesController {
     constructor(
         private readonly devicesService: DevicesService,
@@ -46,7 +47,7 @@ export class DevicesController {
         return this.devicesService.findOne(+id);
     }
 
-    @Put(':id')
+    @Patch(':id')
     @Permission(PERMISSIONS.DEVICE_UPDATE)
     update(
         @Param('id') id: number,
@@ -66,6 +67,7 @@ export class DevicesController {
      * Get latest MQTT data for a specific device
      */
     @Get(':id/mqtt-data')
+    @Permission(PERMISSIONS.DEVICE_READ)
     getDeviceMqttData(@Param('id') id: string) {
         const data = this.devicesMqttHandler.getLatestDeviceData(id);
         return {
@@ -79,6 +81,8 @@ export class DevicesController {
      * Get latest MQTT data for all devices
      */
     @Get('mqtt/all-data')
+    @Permission(PERMISSIONS.DEVICE_READ)
+
     getAllDevicesMqttData() {
         const allData = this.devicesMqttHandler.getAllDeviceData();
         return {
@@ -92,6 +96,8 @@ export class DevicesController {
      * Get latest telemetry from database for all devices
      */
     @Get('telemetry/latest')
+    @Permission(PERMISSIONS.DEVICE_READ)
+
     getLatestTelemetry() {
         return this.devicesService.getLatestTelemetry();
     }
@@ -100,6 +106,8 @@ export class DevicesController {
      * Get latest telemetry from database for a specific device
      */
     @Get(':deviceId/telemetry/latest')
+    @Permission(PERMISSIONS.DEVICE_READ)
+
     getDeviceLatestTelemetry(@Param('deviceId') deviceId: string) {
         return this.devicesService.getDeviceLatestTelemetry(deviceId);
     }
@@ -108,6 +116,8 @@ export class DevicesController {
      * Clear MQTT cache
      */
     @Post('mqtt/clear-cache')
+    @Permission(PERMISSIONS.DEVICE_READ)
+
     @HttpCode(HttpStatus.OK)
     clearMqttCache() {
         this.devicesMqttHandler.clearCache();
@@ -123,17 +133,9 @@ export class DevicesController {
      * 
     */
 
-    @Post(':deviceId/mqtt/reset')
-    resetDevice() {
-
-    }
-    /**
-     * Reset Counter Device
-     * 
-    */
-
-    @Post(':deviceId/mqtt/reset-counter')
-    resetCounterDevice() {
-
+    @Post(':deviceId/checkStatus')
+    @Permission(PERMISSIONS.DEVICE_UPDATE)
+    async checkDeviceOnline(@Param('deviceId') id: number) {
+        return await this.devicesService.checkDeviceOnline(id)
     }
 }
