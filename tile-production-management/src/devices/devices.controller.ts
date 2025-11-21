@@ -11,7 +11,6 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { DevicesService } from './devices.service';
-import { DevicesMqttHandler } from './devices-mqtt.handler';
 import { Device } from './entities/device.entity';
 import { CreateDeviceDto } from './dtos/create-device.dto';
 import { UpdateDeviceDto } from './dtos/update-device.dto';
@@ -25,7 +24,6 @@ import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 export class DevicesController {
     constructor(
         private readonly devicesService: DevicesService,
-        private readonly devicesMqttHandler: DevicesMqttHandler,
     ) { }
 
     @Post()
@@ -66,28 +64,28 @@ export class DevicesController {
     /**
      * Get latest MQTT data for a specific device
      */
-    @Get(':id/mqtt-data')
-    getDeviceMqttData(@Param('id') id: string) {
-        const data = this.devicesMqttHandler.getLatestDeviceData(id);
-        return {
-            deviceId: id,
-            data: data || null,
-            timestamp: new Date().toISOString(),
-        };
-    }
+    // @Get(':id/mqtt-data')
+    // getDeviceMqttData(@Param('id') id: string) {
+    //     const data = this.devicesMqttHandler.getLatestDeviceData(id);
+    //     return {
+    //         deviceId: id,
+    //         data: data || null,
+    //         timestamp: new Date().toISOString(),
+    //     };
+    // }
 
     /**
      * Get latest MQTT data for all devices
      */
-    @Get('mqtt/all-data')
-    getAllDevicesMqttData() {
-        const allData = this.devicesMqttHandler.getAllDeviceData();
-        return {
-            devices: allData,
-            count: Object.keys(allData).length,
-            timestamp: new Date().toISOString(),
-        };
-    }
+    // @Get('mqtt/all-data')
+    // getAllDevicesMqttData() {
+    //     const allData = this.devicesMqttHandler.getAllDeviceData();
+    //     return {
+    //         devices: allData,
+    //         count: Object.keys(allData).length,
+    //         timestamp: new Date().toISOString(),
+    //     };
+    // }
 
     /**
      * Get latest telemetry from database for all devices
@@ -108,13 +106,13 @@ export class DevicesController {
     /**
      * Clear MQTT cache
      */
-    @Post('mqtt/clear-cache')
-    @HttpCode(HttpStatus.OK)
-    clearMqttCache() {
-        this.devicesMqttHandler.clearCache();
-        return {
-            message: 'MQTT cache cleared successfully',
-            timestamp: new Date().toISOString(),
-        };
-    }
+    // @Post('mqtt/clear-cache')
+    // @HttpCode(HttpStatus.OK)
+    // clearMqttCache() {
+    //     this.devicesMqttHandler.clearCache();
+    //     return {
+    //         message: 'MQTT cache cleared successfully',
+    //         timestamp: new Date().toISOString(),
+    //     };
+    // }
 }

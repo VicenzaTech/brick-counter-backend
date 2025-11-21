@@ -13,10 +13,11 @@ import { DeviceCommandService } from './services/device-command.service';
 import { MessageQueueService } from '../common/queue/message-queue.service';
 import { BoundedCacheService } from '../common/cache/bounded-cache.service';
 import { ProductionLine } from '../production-lines/entities/production-line.entity';
+import { DevicesModule } from '../devices/devices.module';
 
 @Global()
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forFeature([ProductionLine])],
+  imports: [ConfigModule, DevicesModule, TypeOrmModule.forFeature([ProductionLine])],
   controllers: [MqttController, DeviceCommandController],
   providers: [
     // Redis client provider

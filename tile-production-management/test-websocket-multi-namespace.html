@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Multi-Namespace Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .namespace-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .namespace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .namespace-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .status.connected {
+            background: #28a745;
+            color: white;
+        }
+        .status.disconnected {
+            background: #dc3545;
+            color: white;
+        }
+        .controls {
+            margin: 15px 0;
+        }
+        .controls label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .controls input {
+            padding: 5px 10px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .controls button {
+            padding: 8px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        .controls button:hover {
+            background: #0056b3;
+        }
+        .controls button.danger {
+            background: #dc3545;
+        }
+        .controls button.danger:hover {
+            background: #c82333;
+        }
+        .messages {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+        .message {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #007bff;
+            background: white;
+            border-radius: 3px;
+        }
+        .message.telemetry {
+            border-left-color: #28a745;
+        }
+        .message.status {
+            border-left-color: #ffc107;
+        }
+        .message.system {
+            border-left-color: #6c757d;
+        }
+        .message-time {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .message-data {
+            margin-top: 5px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 WebSocket Multi-Namespace Test Client</h1>
+        
+        <!-- Brick Counter Namespace -->
+        <div class="namespace-section">
+            <div class="namespace-header">
+                <div class="namespace-title">📊 Brick Counter (/ws/BR)</div>
+                <div class="status" id="br-status">Disconnected</div>
+            </div>
+            <div class="controls">
+                <label>Subscribe to rooms:</label>
+                <input type="text" id="br-rooms" value="device:SAU-ME-01,cluster:BR" placeholder="device:SAU-ME-01,cluster:BR">
+                <button onclick="subscribeBR()">Subscribe</button>
+                <button onclick="clearMessages('br')" class="danger">Clear</button>
+            </div>
+            <div class="messages" id="br-messages"></div>
+        </div>
+
+        <!-- Temperature Namespace -->
+        <div class="namespace-section">
+            <div class="namespace-header">
+                <div class="namespace-title">🌡️ Temperature (/ws/TEMP)</div>
+                <div class="status" id="temp-status">Disconnected</div>
+            </div>
+            <div class="controls">
+                <label>Subscribe to rooms:</label>
+                <input type="text" id="temp-rooms" value="device:TEMP-ZONE-01,cluster:TEMP" placeholder="device:TEMP-ZONE-01,cluster:TEMP">
+                <button onclick="subscribeTemp()">Subscribe</button>
+                <button onclick="clearMessages('temp')" class="danger">Clear</button>
+            </div>
+            <div class="messages" id="temp-messages"></div>
+        </div>
+
+        <!-- Humidity Namespace -->
+        <div class="namespace-section">
+            <div class="namespace-header">
+                <div class="namespace-title">💧 Humidity (/ws/HM)</div>
+                <div class="status" id="hm-status">Disconnected</div>
+            </div>
+            <div class="controls">
+                <label>Subscribe to rooms:</label>
+                <input type="text" id="hm-rooms" value="device:HM-ROOM-01,cluster:HM" placeholder="device:HM-ROOM-01,cluster:HM">
+                <button onclick="subscribeHM()">Subscribe</button>
+                <button onclick="clearMessages('hm')" class="danger">Clear</button>
+            </div>
+            <div class="messages" id="hm-messages"></div>
+        </div>
+    </div>
+
+    <script>
+        const WS_URL = 'http://localhost:3000';
+        
+        // Sockets
+        let brSocket = null;
+        let tempSocket = null;
+        let hmSocket = null;
+
+        // Connect to namespaces
+        function connectNamespaces() {
+            // Brick Counter
+            brSocket = io(`${WS_URL}/ws/BR`);
+            
+            brSocket.on('connect', () => {
+                updateStatus('br', true);
+                addMessage('br', 'system', 'Connected to /ws/BR');
+            });
+            
+            brSocket.on('disconnect', () => {
+                updateStatus('br', false);
+                addMessage('br', 'system', 'Disconnected from /ws/BR');
+            });
+            
+            brSocket.on('telemetry', (data) => {
+                addMessage('br', 'telemetry', `Telemetry: Device ${data.device_id}, Count: ${data.count}, Error: ${data.error}`);
+            });
+            
+            brSocket.on('status', (data) => {
+                addMessage('br', 'status', `Status: Device ${data.device_id}, Status: ${data.status}`);
+            });
+            
+            brSocket.on('subscribed', (data) => {
+                addMessage('br', 'system', `Subscribed to rooms: ${data.rooms.join(', ')}`);
+            });
+
+            // Temperature
+            tempSocket = io(`${WS_URL}/ws/TEMP`);
+            
+            tempSocket.on('connect', () => {
+                updateStatus('temp', true);
+                addMessage('temp', 'system', 'Connected to /ws/TEMP');
+            });
+            
+            tempSocket.on('disconnect', () => {
+                updateStatus('temp', false);
+                addMessage('temp', 'system', 'Disconnected from /ws/TEMP');
+            });
+            
+            tempSocket.on('telemetry', (data) => {
+                addMessage('temp', 'telemetry', `Telemetry: Device ${data.device_id}, Temp: ${data.temperature}°C, Humidity: ${data.humidity}%`);
+            });
+            
+            tempSocket.on('status', (data) => {
+                addMessage('temp', 'status', `Status: Device ${data.device_id}, Status: ${data.status}`);
+            });
+            
+            tempSocket.on('subscribed', (data) => {
+                addMessage('temp', 'system', `Subscribed to rooms: ${data.rooms.join(', ')}`);
+            });
+
+            // Humidity
+            hmSocket = io(`${WS_URL}/ws/HM`);
+            
+            hmSocket.on('connect', () => {
+                updateStatus('hm', true);
+                addMessage('hm', 'system', 'Connected to /ws/HM');
+            });
+            
+            hmSocket.on('disconnect', () => {
+                updateStatus('hm', false);
+                addMessage('hm', 'system', 'Disconnected from /ws/HM');
+            });
+            
+            hmSocket.on('telemetry', (data) => {
+                addMessage('hm', 'telemetry', `Telemetry: Device ${data.device_id}, Humidity: ${data.humidity}%, Temp: ${data.temperature}°C`);
+            });
+            
+            hmSocket.on('status', (data) => {
+                addMessage('hm', 'status', `Status: Device ${data.device_id}, Status: ${data.status}`);
+            });
+            
+            hmSocket.on('subscribed', (data) => {
+                addMessage('hm', 'system', `Subscribed to rooms: ${data.rooms.join(', ')}`);
+            });
+        }
+
+        function subscribeBR() {
+            const roomsStr = document.getElementById('br-rooms').value;
+            const rooms = roomsStr.split(',').map(r => r.trim()).filter(r => r);
+            brSocket.emit('subscribe', { rooms });
+        }
+
+        function subscribeTemp() {
+            const roomsStr = document.getElementById('temp-rooms').value;
+            const rooms = roomsStr.split(',').map(r => r.trim()).filter(r => r);
+            tempSocket.emit('subscribe', { rooms });
+        }
+
+        function subscribeHM() {
+            const roomsStr = document.getElementById('hm-rooms').value;
+            const rooms = roomsStr.split(',').map(r => r.trim()).filter(r => r);
+            hmSocket.emit('subscribe', { rooms });
+        }
+
+        function updateStatus(namespace, connected) {
+            const statusEl = document.getElementById(`${namespace}-status`);
+            statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+            statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
+        }
+
+        function addMessage(namespace, type, text) {
+            const messagesEl = document.getElementById(`${namespace}-messages`);
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            messageEl.innerHTML = `
+                <div class="message-time">[${time}]</div>
+                <div class="message-data">${text}</div>
+            `;
+            
+            messagesEl.insertBefore(messageEl, messagesEl.firstChild);
+            
+            // Keep only last 50 messages
+            while (messagesEl.children.length > 50) {
+                messagesEl.removeChild(messagesEl.lastChild);
+            }
+        }
+
+        function clearMessages(namespace) {
+            document.getElementById(`${namespace}-messages`).innerHTML = '';
+        }
+
+        // Auto-connect on load
+        window.onload = () => {
+            connectNamespaces();
+        };
+    </script>
+</body>
+</html>
