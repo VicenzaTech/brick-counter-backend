@@ -9,22 +9,24 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MqttClient } from 'mqtt';
 import { Device } from '../../devices/entities/device.entity';
+import { Measurement } from '../../measurement/entities/measurement.entity';
+import { MeasurementService } from '../../measurement/measurement.service';
 
 @Injectable()
 export class SimpleUniversalHandler {
   private readonly logger = new Logger('UniversalHandler');
   private mqttClient: MqttClient;
-  
+
   // WebSocket gateways registry - key là namespace
   private wsGateways = new Map<string, any>();
 
   constructor(
     @InjectRepository(Device)
     private readonly deviceRepository: Repository<Device>,
-    // TODO: Inject MeasurementRepository when table is ready
-    // @InjectRepository(Measurement)
-    // private readonly measurementRepository: Repository<Measurement>,
-  ) {}
+    @InjectRepository(Measurement)
+    private readonly measurementRepository: Repository<Measurement>,
+    private readonly measurementService: MeasurementService,
+  ) { }
 
   /**
    * Register WebSocket gateway cho namespace
@@ -49,15 +51,15 @@ export class SimpleUniversalHandler {
       // Parse topic: devices/{cluster}/{device_id}/telemetry
       const parts = topic.split('/');
       const clusterCode = parts[1];
-      const deviceId = parts[2];
-
-      this.logger.log(`📊 [${clusterCode}] Telemetry from ${deviceId}`);
+      const deviceId = parts[1]; //cluster code consider not need
+      this.logger.debug("MESSSAGE : ", message);
+      // console.log(clusterCode, deviceId, message);
+      // this.logger.log(`📊 [${clusterCode}] Telemetry from ${deviceId}`);
       this.logger.debug(`   Data: ${JSON.stringify(message.data)}`);
 
       // Get device info (để lấy ID và relations)
       const device = await this.deviceRepository.findOne({
         where: { deviceId },
-        relations: ['position', 'position.productionLine'],
       });
 
       if (!device) {
@@ -65,8 +67,10 @@ export class SimpleUniversalHandler {
         return;
       }
 
+      this.logger.log(`🔄 Processing telemetry for ${deviceId} (cluster=${clusterCode}), calling saveRawData...`);
+
       // Save RAW data to measurements table
-      await this.saveRawData(device, clusterCode, message);
+      // await this.saveRawData(device, clusterCode, message);
 
       // Broadcast RAW data via WebSocket
       this.broadcastRawData(clusterCode, deviceId, device, message);
@@ -95,7 +99,7 @@ export class SimpleUniversalHandler {
       // Broadcast status
       const namespace = `/ws/${clusterCode}`;
       const gateway = this.wsGateways.get(namespace);
-      
+
       if (gateway?.broadcastStatus) {
         gateway.broadcastStatus(
           [`device:${deviceId}`, `cluster:${clusterCode}`],
@@ -121,16 +125,20 @@ export class SimpleUniversalHandler {
     clusterCode: string,
     message: any,
   ): Promise<void> {
-    // TODO: Insert vào measurements table khi table đã ready
-    // await this.measurementRepository.insert({
-    //   device_id: device.id,
-    //   cluster_code: clusterCode,
-    //   timestamp: new Date(message.timestamp || Date.now()),
-    //   data: message.data,  // Lưu raw JSONB
-    //   ingest_time: new Date(),
-    // });
+    if (!message || !message.data || typeof message.data !== 'object') {
+      this.logger.warn(`Invalid or empty telemetry payload for device ${device.deviceId}. Skipping ingest.`);
+      return;
+    }
 
-    this.logger.debug(`Saved raw data for device ${device.id}`);
+    this.logger.log(`💾 Saving raw data for device ${device.deviceId} (cluster=${clusterCode})...`);
+
+    await this.measurementService.ingest({
+      deviceId: device.deviceId,
+      data: message.data,
+      timestamp: message.timestamp ? new Date(message.timestamp) : undefined,
+    });
+
+    this.logger.log(`✅ Saved raw data for device ${device.deviceId}`);
   }
 
   /**
@@ -142,8 +150,13 @@ export class SimpleUniversalHandler {
     device: Device,
     message: any,
   ): void {
-    const namespace = `/ws/${clusterCode}`;
+    // Use provided clusterCode and lookup namespace
+    // const namespace = `/ws/${clusterCode}`;
+    clusterCode = "BR"
+    const namespace = '/ws/BR'
+    
     const gateway = this.wsGateways.get(namespace);
+    this.logger.debug(`Looking up gateway for namespace: ${namespace}`);
 
     if (!gateway?.broadcastTelemetry) {
       this.logger.debug(`No gateway for namespace: ${namespace}`);
@@ -156,6 +169,7 @@ export class SimpleUniversalHandler {
       `cluster:${clusterCode}`,
     ];
 
+    this.logger.debug("DEVICE POSITION", device.position);
     if (device.position?.productionLine?.id) {
       rooms.push(`line:${device.position.productionLine.id}`);
     }

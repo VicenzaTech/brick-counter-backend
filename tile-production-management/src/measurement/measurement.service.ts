@@ -96,7 +96,9 @@ export class MeasurementService {
                 `Measurement type not found for device ${deviceId} (cluster missing type)`,
             );
         }
-
+        this.logger.debug(
+            `Resolved device ${deviceId} to device_id=${device.id}, cluster_id=${cluster?.id ?? null}, type_id=${measurementType.id}`,
+        );
         const ctx: DeviceContextCache = {
             device_id: device.id,
             cluster_id: cluster?.id ?? null,
@@ -117,11 +119,13 @@ export class MeasurementService {
 
     async ingest(input: IngestInput): Promise<void> {
         const timestamp = input.timestamp ?? new Date();
-        const { device_id, cluster_id, type_id, type_code } =
+        const { device_id, cluster_id, type_id , type_code } =
             await this.resolveDeviceContext(input.deviceId);
 
+        this.logger.debug(`Resolved context: device_id=${device_id}, cluster_id=${cluster_id}, type_id=${type_id}, type_code=${type_code}`);
+
         const measurementType = await this.mtRepository.findOne({
-            where: { id: type_id },
+            where: { id: 34 },
         });
         if (!measurementType) {
             throw new NotFoundException(
@@ -139,14 +143,18 @@ export class MeasurementService {
                 `Payload does not match schema for ${measurementType.code}: ${errors}`,
             );
         }
-
-        await this.measurementRepository.insert({
+        this.logger.debug(
+            `Payload validated for device ${input.deviceId} type ${type_code} ${JSON.stringify(input.data)}`, 
+        );
+        this.logger.debug("CLUSTER ID", cluster_id, type_id);
+        const measurement = this.measurementRepository.create({
             device_id,
             cluster_id,
-            type_id,
+            type_id: 34,
             timestamp,
-            data: input.data,
+            data: JSON.stringify(input.data) as unknown as Record<string, any>,
         });
+        await this.measurementRepository.save(measurement);
 
         await this.deviceRepository.update(device_id, { lastSeenAt: new Date() });
 

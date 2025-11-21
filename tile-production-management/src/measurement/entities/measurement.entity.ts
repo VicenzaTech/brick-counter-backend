@@ -5,6 +5,7 @@ import {
     ManyToOne,
     JoinColumn,
     Index,
+    PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Device } from 'src/devices/entities/device.entity';
 import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
@@ -14,7 +15,7 @@ import { MeasurementType } from 'src/measurement-types/entities/measurement-type
 @Index(['timestamp'])
 @Index(['device_id', 'timestamp'])
 export class Measurement {
-    @PrimaryColumn({ type: 'bigint' })
+    @PrimaryGeneratedColumn({ type: 'bigint' })
     id: string;
 
     // Partition key

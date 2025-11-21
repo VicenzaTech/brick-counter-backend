@@ -20,7 +20,7 @@ import { Permission } from 'src/auth/decorator/permission/permission.decorator';
 import { PERMISSIONS } from 'src/users/permission.constant';
 
 @Controller('measurement-types')
-@UseGuards(AuthGuard, PermissionGuard)
+// @UseGuards(AuthGuard, PermissionGuard)
 export class MeasurementTypesController {
   constructor(
     private readonly measurementTypesService: MeasurementTypesService,

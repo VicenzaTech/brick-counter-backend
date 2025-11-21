@@ -205,6 +205,7 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
 
   private async onMessage(topic: string, payload: Buffer): Promise<void> {
     try {
+      this.logger.debug("PAYLOAD ~~~", payload, typeof payload);
       const payloadStr = payload.toString('utf-8');
       
       this.logger.log(`📥 Processing message...`);
@@ -214,7 +215,9 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
       // Parse JSON
       let message: any;
       try {
-        message = JSON.parse(payloadStr);
+        message = JSON.stringify(payloadStr);
+        this.logger.debug("PAYLOAD ~~~", message, typeof message);
+
       } catch (error) {
         this.logger.error(`❌ JSON parse failed: ${error.message}`);
         this.logger.error(`   Raw: ${payloadStr}`);
@@ -225,8 +228,8 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
 
       // Route to handler
       if (topic.endsWith('/telemetry')) {
-        this.logger.log(`   ➡️ Routing to handleTelemetry()`);
-        await this.handler.handleTelemetry(topic, message);
+        this.logger.log(`   ➡️ Routing to handleTelemetry()`, message);
+        await this.handler.handleTelemetry(topic, payload);
       } else if (topic.endsWith('/status')) {
         this.logger.log(`   ➡️ Routing to handleStatus()`);
         await this.handler.handleStatus(topic, message);

@@ -13,13 +13,15 @@ import { SimpleUniversalHandler } from './handlers/simple-universal.handler';
 // Entities
 import { Device } from '../devices/entities/device.entity';
 import { MqttController } from './mqtt.controller';
-// TODO: Add Measurement entity when table is ready
+import { MeasurementModule } from '../measurement/measurement.module';
+import { Measurement } from '../measurement/entities/measurement.entity';
 
 @Global()
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([Device]),
+    TypeOrmModule.forFeature([Device, Measurement]),
+    MeasurementModule,
   ],
   providers: [
     SimpleUniversalHandler,
