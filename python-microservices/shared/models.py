@@ -4,6 +4,23 @@ SQLAlchemy models for shared tables
 from sqlalchemy import Column, String, Integer, DateTime, JSON, Text, Float
 from sqlalchemy.sql import func
 from shared.database import Base
+import json
+
+
+class MeasurementType(Base):
+    """Measurement type lookup table."""
+    __tablename__ = "measurement_types"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(64), nullable=False, unique=True, index=True)  # VD: COUNT_BRICK, TEMP_C, HUMIDITY
+    name = Column(String(255), nullable=False)  # Tên dễ đọc: "Đếm gạch", "Nhiệt độ (°C)", ...
+    data_schema = Column(JSON, nullable=False)  # VD: { "count": "number" } | { "humidity": "number" }
+    data_schema_version = Column(Integer, nullable=False, default=1)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    def __repr__(self):
+        return f"<MeasurementType(id={self.id}, code={self.code}, name={self.name})>"
 
 
 class Measurement(Base):
@@ -17,8 +34,11 @@ class Measurement(Base):
     device_id = Column(String(50), nullable=False, index=True)
     sensor_type = Column(String(50), nullable=False, index=True)  # 'brick_counter', 'moisture', 'temperature', etc.
     timestamp = Column(DateTime(timezone=True), nullable=False, index=True, server_default=func.now())
+    cluster_id = Column(Integer, nullable=True, index=True)
+    type_id = Column(Integer, nullable=False, default=1)  # 1=counter, 2=moisture, etc.
+    ingest_time = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     data = Column(JSON, nullable=False)  # JSONB storage for flexible sensor data
-    metadata = Column(JSON)  # Additional metadata (device info, location, etc.)
+    meta_data = Column(JSON)  # Additional metadata (device info, location, etc.)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     def __repr__(self):
@@ -40,7 +60,7 @@ class ProcessingLog(Base):
     status = Column(String(20), nullable=False)  # 'running', 'success', 'failed'
     records_processed = Column(Integer, default=0)
     error_message = Column(Text)
-    metadata = Column(JSON)  # Processing details, config used, etc.
+    meta_data = Column(JSON)  # Processing details, config used, etc.
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     def __repr__(self):
@@ -88,7 +108,7 @@ class BrickProductionStat(Base):
     
     # Metadata
     data_quality_score = Column(Float)  # 0-1 score
-    metadata = Column(JSON)
+    meta_data = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -124,7 +144,7 @@ class MoistureAnalysisStat(Base):
     
     # Metadata
     sample_count = Column(Integer)
-    metadata = Column(JSON)
+    meta_data = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     def __repr__(self):
@@ -163,7 +183,7 @@ class MachineMonitoringStat(Base):
     critical_alert_count = Column(Integer, default=0)
     
     # Metadata
-    metadata = Column(JSON)
+    meta_data = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     def __repr__(self):

@@ -14,7 +14,7 @@ load_dotenv()
 
 # Database URL
 DATABASE_URL = (
-    f"postgresql://{os.getenv('DB_USER', 'postgres')}:"
+    f"postgresql://{os.getenv('DB_USER', 'admin')}:"
     f"{os.getenv('DB_PASSWORD', '123456')}@"
     f"{os.getenv('DB_HOST', 'localhost')}:"
     f"{os.getenv('DB_PORT', '5450')}/"
