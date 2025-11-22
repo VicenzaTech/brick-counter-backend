@@ -15,7 +15,6 @@ export class GenericWebSocketGateway {
   private namespace: string;
   private clusterCode: string;
   public server: Namespace | undefined;
-
   constructor(namespace: string, clusterCode: string) {
     this.namespace = namespace;
     this.clusterCode = clusterCode;

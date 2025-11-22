@@ -47,6 +47,12 @@ export class DeviceClustersController {
         return this.deviceClustersService.findOne(+id);
     }
 
+    @Get('/line/:productionLineId')
+    @Permission(PERMISSIONS.DEVICE_READ)
+    findAllByLineId(@Param('productionLineId', ParseIntPipe) id: number): Promise<any> {
+        return this.deviceClustersService.findAllByLineId(+id);
+    }
+
     @Patch(':id')
     @Permission(PERMISSIONS.DEVICE_UPDATE)
     update(

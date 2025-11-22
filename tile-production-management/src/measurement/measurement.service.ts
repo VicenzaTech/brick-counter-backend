@@ -119,13 +119,13 @@ export class MeasurementService {
 
     async ingest(input: IngestInput): Promise<void> {
         const timestamp = input.timestamp ?? new Date();
-        const { device_id, cluster_id, type_id , type_code } =
+        const { device_id, cluster_id, type_id, type_code } =
             await this.resolveDeviceContext(input.deviceId);
 
         this.logger.debug(`Resolved context: device_id=${device_id}, cluster_id=${cluster_id}, type_id=${type_id}, type_code=${type_code}`);
 
         const measurementType = await this.mtRepository.findOne({
-            where: { id: 34 },
+            where: { id: type_id },
         });
         if (!measurementType) {
             throw new NotFoundException(
@@ -140,17 +140,17 @@ export class MeasurementService {
                 ?.map((e: any) => `${e.instancePath} ${e.message}`)
                 .join('; ');
             throw new BadRequestException(
-                `Payload does not match schema for ${measurementType.code}: ${errors}`,
+                `Payload does not match schema for ${measurementType.code}: ${errors} : ${input.data}`,
             );
         }
         this.logger.debug(
-            `Payload validated for device ${input.deviceId} type ${type_code} ${JSON.stringify(input.data)}`, 
+            `Payload validated for device ${input.deviceId} type ${type_code} ${JSON.stringify(input.data)}`,
         );
         this.logger.debug("CLUSTER ID", cluster_id, type_id);
         const measurement = this.measurementRepository.create({
             device_id,
             cluster_id,
-            type_id: 34,
+            type_id: type_id,
             timestamp,
             data: JSON.stringify(input.data) as unknown as Record<string, any>,
         });
@@ -159,7 +159,7 @@ export class MeasurementService {
         await this.deviceRepository.update(device_id, { lastSeenAt: new Date() });
 
         this.logger.debug(
-            `Saved measurement for device ${input.deviceId} type ${type_code} at ${timestamp.toISOString()}`,
+            `Saved measurement for device ${input.deviceId} type ${type_code} at ${timestamp}`,
         );
     }
 }

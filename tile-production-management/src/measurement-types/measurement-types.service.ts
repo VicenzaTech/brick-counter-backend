@@ -67,7 +67,6 @@ export class MeasurementTypesService {
 
         return mt;
     }
-
     async update(
         id: number,
         dto: UpdateMeasurementTypeDto,
