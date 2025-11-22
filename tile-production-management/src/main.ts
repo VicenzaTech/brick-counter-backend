@@ -4,8 +4,11 @@ import { DataSource } from 'typeorm';
 import cookieParser from 'cookie-parser';
 import type { DeviceExtraInfo } from './common/mqtt/device-extra-info';
 import { ValidationPipe } from '@nestjs/common';
+import { Measurement } from 'src/measurement/entities/measurement.entity';
+import { MeasurementType } from 'src/measurement-types/entities/measurement-types.entity';
+import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
 
-// Dữ liệu thiết bị mẫu cho PX-01, 2 dây chuyền
+// Dữ liệu thiết bị mẫu cho PX-01, 1 dây chuyền
 const DEVICES_DATA = [
     {
         name: 'Sau máy ép 1',
@@ -380,6 +383,107 @@ async function seedDevices(dataSource: DataSource) {
     }
 }
 
+// -----------------------------------------------
+// Data generator
+// -----------------------------------------------
+function generateMeasurementData(
+  deviceCode: string,
+  count: number,
+  errorCount: number = 0,
+) {
+  return {
+    ts: new Date().toISOString(),
+    deviceId: deviceCode,
+    schemaVer: 1,
+    metrics: {
+      count,
+      error_count: errorCount,
+    },
+    quality: {
+      rssi: Math.floor(Math.random() * 60) - 90,
+    },
+  };
+}
+
+// -----------------------------------------------
+// Seed logic
+// -----------------------------------------------
+async function seedMeasurements(dataSource: DataSource) {
+  const measurementRepo = dataSource.getRepository(Measurement);
+  const measurementTypeRepo = dataSource.getRepository(MeasurementType);
+
+  // Measurement Type
+  let measurementType = await measurementTypeRepo.findOne({
+    where: { code: 'BRICK_COUNTER' },
+  });
+
+  if (!measurementType) {
+    measurementType = measurementTypeRepo.create({
+      code: 'BRICK_COUNTER',
+      name: 'Đếm gạch',
+      data_schema: {
+        count: 'number',
+        error_count: 'number',
+      },
+      data_schema_version: 1,
+      description: 'Counter sensor for brick production',
+    });
+
+    await measurementTypeRepo.save(measurementType);
+    console.log('✓ Created MeasurementType: COUNT_BRICK');
+  }
+
+  // Generate data
+  const measurements: Measurement[] = [];
+  const numDays = 7;
+  const perDay = 10;
+
+  const baseDate = new Date();
+  baseDate.setDate(baseDate.getDate() - numDays);
+  const devices = await dataSource.query(
+    `SELECT id, "deviceId" as code, cluster_id FROM devices WHERE "cluster_id" IS NOT NULL AND type = 'counter'`,
+  );
+  for (const dev of devices) {
+    let currentCount = Math.floor(Math.random() * 400) + 100;
+
+    for (let d = 0; d < numDays; d++) {
+      const day = new Date(baseDate);
+      day.setDate(day.getDate() + d);
+
+      for (let i = 0; i < perDay; i++) {
+        const h = Math.floor(Math.random() * 24);
+        const m = Math.floor(Math.random() * 60);
+        const s = Math.floor(Math.random() * 60);
+
+        const ts = new Date(day);
+        ts.setHours(h, m, s);
+
+        const random = Math.random();
+        if (random < 0.7) currentCount += Math.floor(Math.random() * 16) + 5;
+        else if (random < 0.9) currentCount += Math.floor(Math.random() * 151) + 50;
+        else currentCount = Math.floor(Math.random() * 50);
+
+        const errorCount = Math.random() < 0.3 ? Math.floor(Math.random() * 5) : 0;
+
+        const measurement = measurementRepo.create({
+          device_id: dev.id,
+          cluster_id: dev.cluster_id,
+          type_id: measurementType.id,
+          timestamp: ts,
+          ingest_time: new Date(),
+          data: generateMeasurementData(dev.code, currentCount, errorCount),
+        });
+
+        measurements.push(measurement);
+      }
+    }
+  }
+
+  await measurementRepo.save(measurements, { chunk: 100 });
+
+  console.log(`✓ Inserted ${measurements.length} measurement rows`);
+}
+
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.setGlobalPrefix('api');
@@ -397,6 +501,7 @@ async function bootstrap() {
     // Auto-seed devices on startup
     const dataSource = app.get(DataSource);
     await seedDevices(dataSource);
+    await seedMeasurements(dataSource);
     // Validator Request Body Pipe 
     // app.useGlobalPipes(new ValidationPipe({
     //     whitelist: true,
