@@ -1,16 +1,28 @@
 #!/usr/bin/env python3
 """
-Simple CLI to fetch measurements from Postgres using the existing async SQLAlchemy setup.
-Usage:
-  python get_measurements.py --device 123 --from 2025-11-21T00:00:00 --to 2025-11-22T00:00:00 --limit 100
+Brick Production Analysis CLI
+==============================
+Extended CLI tool for fetching and analyzing brick production data.
 
-This script uses `db.SessionLocal` (async_sessionmaker) and the `Measurement` model defined
-in `model.py`.
+Usage Examples:
+  # Fetch raw measurements
+  python get_measurements.py --device 1 --from 2025-11-21T00:00:00 --to 2025-11-22T00:00:00
+
+  # Analyze daily production
+  python get_measurements.py analyze-daily --date 2025-11-21 --cluster 1 --product-line "300x600mm"
+
+  # Calculate waste/loss by stage
+  python get_measurements.py calculate-waste --date 2025-11-21 --cluster 1
+
+  # Compare with quota (khoán)
+  python get_measurements.py compare-quota --date 2025-11-21 --cluster 1 --product-line "300x600mm"
+
+  # Generate daily report
+  python get_measurements.py daily-report --date 2025-11-21 --cluster 1
 """
 import argparse
 import asyncio
 import json
-import sys
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict, Tuple
 from collections import defaultdict
@@ -18,43 +30,7 @@ from dataclasses import dataclass, asdict
 
 from db import SessionLocal
 from model import Measurement
-from sqlalchemy import select, and_, cast, String
-
-
-def parse_iso(s: Optional[str]) -> Optional[datetime]:
-    if not s:
-        return None
-    try:
-        # Accept ISO 8601-like strings
-        return datetime.fromisoformat(s)
-    except Exception:
-        raise argparse.ArgumentTypeError(f"Invalid datetime: {s}. Use ISO format like 2025-11-21T00:00:00")
-
-
-def serialize_measurement(m: Measurement) -> dict:
-    return {
-        "id": int(m.id) if m.id is not None else None,
-        "timestamp": m.timestamp.isoformat() if m.timestamp else None,
-        "device_id": m.device_id,
-        "cluster_id": m.cluster_id,
-        "type_id": m.type_id,
-        "ingest_time": m.ingest_time.isoformat() if m.ingest_time else None,
-        "data": m.data,
-    }
-
-
-async def fetch(device_id: int, from_ts: Optional[datetime], to_ts: Optional[datetime], limit: int, offset: int):
-    async with SessionLocal() as session:
-        stmt = select(Measurement).where(Measurement.device_id == device_id)
-        if from_ts:
-            stmt = stmt.where(Measurement.timestamp >= from_ts)
-        if to_ts:
-            stmt = stmt.where(Measurement.timestamp <= to_ts)
-        stmt = stmt.order_by(Measurement.timestamp.desc()).limit(limit).offset(offset)
-
-        result = await session.execute(stmt)
-        rows = result.scalars().all()
-        return [serialize_measurement(r) for r in rows]
+from sqlalchemy import select, and_
 
 
 # =============================================================================
@@ -151,37 +127,6 @@ DEVICE_POSITIONS = {
     'truoc_dong_hop': ['TRUOC-DH-01']
 }
 
-# Optional device mapping file: maps position names to numeric DB `device_id` values.
-# Example 'device_mapping.json':
-# {
-#   "ep": [1, 2],
-#   "truoc_lo": [3, 4],
-#   "sau_lo": [5],
-#   "truoc_mai": [6],
-#   "sau_mai_canh": [7],
-#   "truoc_dong_hop": [8]
-# }
-from pathlib import Path
-_mapping_file = Path(__file__).with_name('device_mapping.json')
-DEVICE_POSITION_IDS = None
-if _mapping_file.exists():
-    try:
-        with _mapping_file.open('r', encoding='utf-8') as _f:
-            DEVICE_POSITION_IDS = json.load(_f)
-    except Exception:
-        DEVICE_POSITION_IDS = None
-
-DEVICE_CODE_TO_ID = {
-    'SAU-ME-01': 1,
-    'SAU-ME-02': 2,
-    'TRUOC-LN-01': 3,
-    'TRUOC-LN-02': 4,
-    'SAU-LN-01': 5,
-    'TRUOC-MM-01': 6,
-    'SAU-MC-01': 7,
-    'TRUOC-DH-01': 8
-}
-
 # Ngưỡng cảnh báo hao phí (%)
 WASTE_THRESHOLDS = {
     'hp_moc': 2.0,
@@ -240,22 +185,6 @@ def serialize_measurement(m: Measurement) -> dict:
         "ingest_time": m.ingest_time.isoformat() if m.ingest_time else None,
         "data": m.data,
     }
-
-
-def serialize_timestamp_count(m: dict) -> dict:
-    """Return only timestamp and count fields from a serialized measurement dict.
-
-    Accepts the dict returned by `serialize_measurement(...)` and returns
-    {'timestamp': <iso ts>, 'count': <int|null>} where count is taken from
-    `data.metrics.count` if present.
-    """
-    ts = m.get('timestamp')
-    count = None
-    try:
-        count = m.get('data', {}).get('metrics', {}).get('count')
-    except Exception:
-        count = None
-    return {"timestamp": ts, "count": count}
 
 
 # =============================================================================
@@ -380,12 +309,12 @@ async def fetch_measurements_by_device_codes(
         results = {}
         
         for device_code in device_codes:
-            # Query using JSONB operator (use cast to text for compatibility)
+            # Query using JSONB operator
             stmt = select(Measurement).where(
                 and_(
                     Measurement.timestamp >= from_ts,
                     Measurement.timestamp <= to_ts,
-                    cast(Measurement.data['deviceId'], String) == device_code
+                    Measurement.data['deviceId'].astext == device_code
                 )
             )
             
@@ -401,42 +330,6 @@ async def fetch_measurements_by_device_codes(
         return results
 
 
-async def fetch_measurements_by_device_ids(
-    device_ids: List[int],
-    from_ts: datetime,
-    to_ts: datetime,
-    cluster_id: Optional[int] = None
-) -> Dict[str, List[Dict]]:
-    """
-    Fetch measurements for multiple numeric device_ids and return a mapping
-    of device_id (as string) -> list of serialized measurements.
-    """
-    async with SessionLocal() as session:
-        results = {str(d): [] for d in device_ids}
-        if not device_ids:
-            return results
-
-        stmt = select(Measurement).where(
-            and_(
-                Measurement.timestamp >= from_ts,
-                Measurement.timestamp <= to_ts,
-                Measurement.device_id.in_(device_ids)
-            )
-        )
-        if cluster_id:
-            stmt = stmt.where(Measurement.cluster_id == cluster_id)
-
-        stmt = stmt.order_by(Measurement.timestamp)
-        result = await session.execute(stmt)
-        rows = result.scalars().all()
-
-        for r in rows:
-            key = str(r.device_id)
-            results.setdefault(key, []).append(serialize_measurement(r))
-
-        return results
-
-
 async def fetch_all_position_measurements(
     cluster_id: int,
     from_ts: datetime,
@@ -448,35 +341,14 @@ async def fetch_all_position_measurements(
     Returns:
         Dict mapping position_name to {device_code: measurements}
     """
-    # If a numeric device mapping file exists, query by numeric device_id.
-    if DEVICE_POSITION_IDS:
-        all_ids = []
-        for ids in DEVICE_POSITION_IDS.values():
-            all_ids.extend(ids)
-
-        measurements_by_device = await fetch_measurements_by_device_ids(
-            all_ids, from_ts, to_ts, cluster_id
-        )
-
-        # Group by position using numeric ids (keys as strings)
-        by_position = {}
-        for position, ids in DEVICE_POSITION_IDS.items():
-            by_position[position] = {
-                str(id_): measurements_by_device.get(str(id_), [])
-                for id_ in ids
-            }
-
-        return by_position
-
-    # Fallback: use DEVICE_POSITIONS (device codes inside JSON payload)
     all_device_codes = []
     for codes in DEVICE_POSITIONS.values():
         all_device_codes.extend(codes)
-
+    
     measurements_by_device = await fetch_measurements_by_device_codes(
         all_device_codes, from_ts, to_ts, cluster_id
     )
-
+    
     # Group by position
     by_position = {}
     for position, codes in DEVICE_POSITIONS.items():
@@ -484,53 +356,8 @@ async def fetch_all_position_measurements(
             code: measurements_by_device.get(code, [])
             for code in codes
         }
-
+    
     return by_position
-
-
-async def fetch_timeline_by_device_for_day(
-    cluster_id: int,
-    production_date: date,
-    limit_per_device: Optional[int] = None
-) -> Dict[int, List[Dict]]:
-    """
-    Fetch the timeline (ordered by timestamp) of measurements for each device
-    in a given cluster on a specific day.
-
-    Returns a dict mapping numeric device_id -> list of serialized measurements
-    ordered by timestamp ascending.
-
-    Args:
-        cluster_id: numeric cluster id to filter measurements
-        production_date: date object for the day to fetch
-        limit_per_device: optional limit of rows per device (None = no limit)
-    """
-    from_ts = datetime.combine(production_date, datetime.min.time())
-    next_day = from_ts + timedelta(days=1)
-
-    async with SessionLocal() as session:
-        stmt = select(Measurement).where(
-            and_(
-                Measurement.cluster_id == cluster_id,
-                Measurement.timestamp >= from_ts,
-                Measurement.timestamp < next_day,
-            )
-        ).order_by(Measurement.device_id, Measurement.timestamp)
-
-        result = await session.execute(stmt)
-        rows = result.scalars().all()
-
-        timeline: Dict[int, List[Dict]] = {}
-        for r in rows:
-            key = int(r.device_id) if r.device_id is not None else -1
-            timeline.setdefault(key, []).append(serialize_measurement(r))
-
-        # If a per-device limit is requested, trim lists
-        if limit_per_device is not None and limit_per_device > 0:
-            for k in list(timeline.keys()):
-                timeline[k] = timeline[k][-limit_per_device:]
-
-        return timeline
 
 
 # =============================================================================
@@ -701,6 +528,7 @@ async def cmd_analyze_daily(args):
     # Fetch all measurements
     print("Đang tải dữ liệu từ database...")
     by_position = await fetch_all_position_measurements(cluster_id, from_ts, to_ts)
+    
     # Calculate production at each stage
     print("\n--- SẢN LƯỢNG TỪNG CÔNG ĐOẠN ---\n")
     
@@ -849,120 +677,3 @@ async def cmd_compare_quota(args):
         print(json.dumps(asdict(quota), indent=2, ensure_ascii=False))
     else:
         print(f"Không tìm thấy mức khoán cho dòng sản) phẩm: {product_line}")
-
-
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Measurement CLI: fetch + analysis commands")
-    sub = parser.add_subparsers(dest="cmd", required=False)
-
-    # fetch (default behavior)
-    p_fetch = sub.add_parser("fetch", help="Fetch raw measurements for a device")
-    p_fetch.add_argument("--device", "-d", required=True, type=int, help="device_id (integer)")
-    p_fetch.add_argument("--from", dest="from_ts", type=parse_iso, help="Start timestamp (ISO)")
-    p_fetch.add_argument("--to", dest="to_ts", type=parse_iso, help="End timestamp (ISO)")
-    p_fetch.add_argument("--limit", type=int, default=100, help="Limit number of rows")
-    p_fetch.add_argument("--offset", type=int, default=0, help="Offset")
-
-    # analyze-daily
-    p_analyze = sub.add_parser("analyze-daily", help="Analyze daily production")
-    p_analyze.add_argument("--date", required=True, type=parse_date, help="Production date YYYY-MM-DD")
-    p_analyze.add_argument("--cluster", required=True, type=int, help="cluster id")
-    p_analyze.add_argument("--product-line", dest="product_line", required=False, help="Product line (e.g. 300x600mm)")
-    p_analyze.add_argument("--output", required=False, help="Output JSON file path")
-
-    # calculate-waste
-    p_waste = sub.add_parser("calculate-waste", help="Calculate waste/loss for a date + cluster")
-    p_waste.add_argument("--date", required=True, type=parse_date, help="Production date YYYY-MM-DD")
-    p_waste.add_argument("--cluster", required=True, type=int, help="cluster id")
-
-    # compare-quota
-    p_quota = sub.add_parser("compare-quota", help="Compare actual production with quota")
-    p_quota.add_argument("--date", required=True, type=parse_date, help="Production date YYYY-MM-DD")
-    p_quota.add_argument("--cluster", required=True, type=int, help="cluster id")
-    p_quota.add_argument("--product-line", dest="product_line", required=True, help="Product line (e.g. 300x600mm)")
-
-    # daily-report (alias of analyze-daily but with enforced output)
-    p_report = sub.add_parser("daily-report", help="Generate daily report JSON")
-    p_report.add_argument("--date", required=True, type=parse_date, help="Production date YYYY-MM-DD")
-    p_report.add_argument("--cluster", required=True, type=int, help="cluster id")
-    p_report.add_argument("--product-line", dest="product_line", required=False, help="Product line (e.g. 300x600mm)")
-    p_report.add_argument("--output", required=False, help="Output JSON file path")
-
-    # timeline: per-device ordered timeline for a date
-    p_timeline = sub.add_parser("timeline", help="Fetch per-device timeline for a day (ordered by timestamp)")
-    p_timeline.add_argument("--date", required=True, type=parse_date, help="Production date YYYY-MM-DD")
-    p_timeline.add_argument("--cluster", required=True, type=int, help="cluster id")
-    p_timeline.add_argument("--limit-per-device", dest="limit_per_device", type=int, required=False, help="Limit rows per device (most recent)")
-
-    # fetch-counts: minimal timestamp + count pairs for a device
-    p_fetch_counts = sub.add_parser("fetch-counts", help="Fetch timestamp + count pairs for a device")
-    p_fetch_counts.add_argument("--device", "-d", required=True, type=int, help="device_id (integer)")
-    p_fetch_counts.add_argument("--from", dest="from_ts", type=parse_iso, help="Start timestamp (ISO)")
-    p_fetch_counts.add_argument("--to", dest="to_ts", type=parse_iso, help="End timestamp (ISO)")
-    p_fetch_counts.add_argument("--limit", type=int, default=1000, help="Limit number of rows")
-
-    # If user provided no subcommand, default to fetch with previous flags
-    # To maintain backward compatibility, also parse flags at the top level
-    if len(sys.argv) == 1:
-        parser.print_help()
-        return
-
-    args = parser.parse_args()
-
-    # Dispatch commands
-    if args.cmd == "fetch":
-        data = asyncio.run(fetch(args.device, args.from_ts, args.to_ts, args.limit, args.offset))
-        print(json.dumps({"device_id": args.device, "count": len(data), "data": data}, indent=2, default=str))
-    elif args.cmd == "fetch-counts":
-        # Use the same DB fetch but output only timestamp + count
-        data = asyncio.run(fetch_measurements_by_device(args.device, getattr(args, 'from_ts', None), getattr(args, 'to_ts', None), getattr(args, 'limit', 1000)))
-        pairs = [serialize_timestamp_count(m) for m in data]
-        print(json.dumps({"device_id": args.device, "count": len(pairs), "data": pairs}, indent=2, default=str, ensure_ascii=False))
-    elif args.cmd == "analyze-daily":
-        asyncio.run(cmd_analyze_daily(args))
-    elif args.cmd == "calculate-waste":
-        asyncio.run(cmd_calculate_waste(args))
-    elif args.cmd == "timeline":
-        timeline = asyncio.run(fetch_timeline_by_device_for_day(args.cluster, args.date, getattr(args, 'limit_per_device', None)))
-        # Convert each device's measurements to timestamp+count pairs
-        timeline_counts = {}
-        for dev_id, measurements in timeline.items():
-            pairs = [serialize_timestamp_count(m) for m in measurements]
-            timeline_counts[str(dev_id)] = pairs
-
-        # print as JSON with string keys
-        print(json.dumps(timeline_counts, indent=2, default=str, ensure_ascii=False))
-    elif args.cmd == "compare-quota":
-        asyncio.run(cmd_compare_quota(args))
-    elif args.cmd == "daily-report":
-        # ensure output default
-        if not args.output:
-            args.output = f"daily_report_{args.date}.json"
-        asyncio.run(cmd_analyze_daily(args))
-    else:
-        # Fallback: if user invoked script with positional style (old behavior)
-        if hasattr(args, 'device') and args.device:
-            data = asyncio.run(fetch(args.device, getattr(args, 'from_ts', None), getattr(args, 'to_ts', None), getattr(args, 'limit', 100), getattr(args, 'offset', 0)))
-            print(json.dumps({"device_id": args.device, "count": len(data), "data": data}, indent=2, default=str))
-        else:
-            parser.print_help()
-            return
-
-if __name__ == "__main__":
-    main()
-
-    # python get_measurements.py --device 123 --from 2025-11-21T00:00:00 --to 2025-11-22T00:00:00 --limit 100
-
-# python get_measurements.py fetch --device 1 --from 2025-11-21T00:00:00 --to 2025-11-22T00:00:00 --limit 200
-
-# python get_measurements.py analyze-daily --date 2025-11-21 --cluster 1 --product-line "300x600mm" --output report_2025-11-21.json
-
-# python .\get_measurements.py calculate-waste --date 2025-11-21 --cluster 1
-
-# python .\get_measurements.py compare-quota --date 2025-11-21 --cluster 1 --product-line "300x600mm"
-
-# python get_measurements.py daily-report --date 2025-11-21 --cluster 1 --product-line "300x600mm" --output daily_report_2025-11-21.jsonpython .\get_measurements.py daily-report --date 2025-11-21 --cluster 1 --product-line "300x600mm" --output daily_report_2025-11-21.json
-
-# python get_measurements.py timeline --date 2025-11-15 --cluster 1 --limit-per-device 100

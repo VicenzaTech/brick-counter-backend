@@ -1,0 +1,41 @@
+{
+  "production_date": "2025-11-21",
+  "cluster_id": 1,
+  "product_line": "300x600mm",
+  "sl_ep": 0,
+  "sl_truoc_lo": 0,
+  "sl_sau_lo": 0,
+  "sl_truoc_mai": 0,
+  "sl_sau_mai_canh": 0,
+  "sl_truoc_dong_hop": 0,
+  "waste": {
+    "hp_moc": 0,
+    "hp_lo": 0,
+    "hp_tm": 0,
+    "hp_ht": 0,
+    "ty_le_hp_moc": 0,
+    "ty_le_hp_lo": 0,
+    "ty_le_hp_tm": 0,
+    "ty_le_hp_ht": 0,
+    "tong_hao_phi": 0,
+    "ty_le_tong_hp": 0,
+    "canh_bao_hp_moc": false,
+    "canh_bao_hp_lo": false,
+    "canh_bao_hp_tm": false,
+    "canh_bao_hp_ht": false
+  },
+  "efficiency": {
+    "hieu_suat_moc": 0,
+    "hieu_suat_lo": 0,
+    "hieu_suat_truoc_mai": 0,
+    "hieu_suat_thanh_pham": 0
+  },
+  "quota": {
+    "product_line": "300x600mm",
+    "san_luong_thuc_te": 0,
+    "san_luong_khoan": 9589,
+    "chenh_lech": -9589,
+    "ty_le_vuot_khoan": -100.0,
+    "working_days": 28.5
+  }
+}
