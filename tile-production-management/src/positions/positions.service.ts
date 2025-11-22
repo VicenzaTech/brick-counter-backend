@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Position } from './entities/position.entity';
 import { CreatePositionDto } from './dtos/create-position.dto';
 import { UpdatePositionDto } from './dtos/update-position.dto';
@@ -19,7 +19,6 @@ export class PositionsService {
         const lastPos = await this.positionRepository.findOne({
             where: { productionLine: { id: productionLineId } },
             order: { index: 'DESC' },
-            select: { index: true },
         });
 
         const nextIndex = createPositionDto.index ?? (lastPos ? lastPos.index + 1 : 1);
@@ -62,34 +61,45 @@ export class PositionsService {
 
         const oldLineId = position.productionLine.id;
         const oldIndex = position.index;
-        const newIndex = dto.index ?? oldIndex;
 
-        // Không thay đổi production line, chỉ thay đổi index (và thông tin mô tả)
+        // --- TÍNH newIndex + CLAMP ---
+        let newIndex = dto.index ?? oldIndex;
+
+        // Chặn index < 1
+        if (newIndex < 1) newIndex = 1;
+
+        // Lấy maxIndex của line
+        const maxIndex = await this.getMaxIndexOfLine(oldLineId);
+
+        // Chặn index > maxIndex
+        if (newIndex > maxIndex) newIndex = maxIndex;
+
+        // --- LOGIC REORDER ---
         if (newIndex !== oldIndex) {
             const isIncrease = newIndex > oldIndex;
 
             if (isIncrease) {
-                await this.positionRepository
-                    .createQueryBuilder()
-                    .update()
-                    .set({ index: () => `"index" - 1"` })
-                    .where(`"productionLineId" = :line`, { line: oldLineId })
-                    .andWhere(`"index" > :oldIndex`, { oldIndex })
-                    .andWhere(`"index" <= :newIndex`, { newIndex })
-                    .execute();
+                await this.positionRepository.decrement(
+                    {
+                        productionLine: { id: oldLineId },
+                        index: Between(oldIndex + 1, newIndex),
+                    },
+                    'index',
+                    1,
+                );
             } else {
-                await this.positionRepository
-                    .createQueryBuilder()
-                    .update()
-                    .set({ index: () => `"index" + 1"` })
-                    .where(`"productionLineId" = :line`, { line: oldLineId })
-                    .andWhere(`"index" < :oldIndex`, { oldIndex })
-                    .andWhere(`"index" >= :newIndex`, { newIndex })
-                    .execute();
+                await this.positionRepository.increment(
+                    {
+                        productionLine: { id: oldLineId },
+                        index: Between(newIndex, oldIndex - 1),
+                    },
+                    'index',
+                    1,
+                );
             }
         }
 
-        // Cập nhật name / description / coordinates, giữ nguyên productionLine
+        // Cập nhật các field khác
         Object.assign(position, {
             name: dto.name ?? position.name,
             description: dto.description ?? position.description,
@@ -100,6 +110,7 @@ export class PositionsService {
         return this.positionRepository.save(position);
     }
 
+
     async updateIndex(id: number, dto: UpdatePossitionIndexDto) {
         const position = await this.positionRepository.findOne({
             where: { id },
@@ -107,30 +118,40 @@ export class PositionsService {
         });
 
         if (!position) throw new NotFoundException('Position not found');
-        const oldLineId = position.productionLine.id
+
+        const oldLineId = position.productionLine.id;
         const oldIndex = position.index;
-        const newIndex = dto.index ?? oldIndex;
+
+        // --- TÍNH newIndex + CLAMP ---
+        let newIndex = dto.index ?? oldIndex;
+
+        if (newIndex < 1) newIndex = 1;
+
+        const maxIndex = await this.getMaxIndexOfLine(oldLineId);
+        if (newIndex > maxIndex) newIndex = maxIndex;
+
+        // --- LOGIC REORDER ---
         if (newIndex !== oldIndex) {
             const isIncrease = newIndex > oldIndex;
 
             if (isIncrease) {
-                await this.positionRepository
-                    .createQueryBuilder()
-                    .update()
-                    .set({ index: () => `"index" - 1"` })
-                    .where(`"productionLineId" = :line`, { line: oldLineId })
-                    .andWhere(`"index" > :oldIndex`, { oldIndex })
-                    .andWhere(`"index" <= :newIndex`, { newIndex })
-                    .execute();
+                await this.positionRepository.decrement(
+                    {
+                        productionLine: { id: oldLineId },
+                        index: Between(oldIndex + 1, newIndex),
+                    },
+                    'index',
+                    1,
+                );
             } else {
-                await this.positionRepository
-                    .createQueryBuilder()
-                    .update()
-                    .set({ index: () => `"index" + 1"` })
-                    .where(`"productionLineId" = :line`, { line: oldLineId })
-                    .andWhere(`"index" < :oldIndex`, { oldIndex })
-                    .andWhere(`"index" >= :newIndex`, { newIndex })
-                    .execute();
+                await this.positionRepository.increment(
+                    {
+                        productionLine: { id: oldLineId },
+                        index: Between(newIndex, oldIndex - 1),
+                    },
+                    'index',
+                    1,
+                );
             }
         }
 
@@ -139,8 +160,24 @@ export class PositionsService {
         return this.positionRepository.save(position);
     }
 
+
     async remove(id: number): Promise<void> {
         const position = await this.findOne(id);
+        const deviceCount = position.devices.length
+        if (deviceCount > 0) throw new BadRequestException(`There are ${deviceCount} in this position`)
+
         await this.positionRepository.remove(position);
+    }
+
+    private async getMaxIndexOfLine(lineId: number): Promise<number> {
+        const row = await this.positionRepository
+            .createQueryBuilder('p')
+            .select('MAX(p.index)', 'max')
+            .where('p.productionLine = :lineId', { lineId })
+            .getRawOne<{ max: string | null }>();
+
+        const max = row?.max ? Number(row.max) : 0;
+        // Nếu line chưa có position nào, mình cho max = 1 cho dễ xử lý
+        return max > 0 ? max : 1;
     }
 }

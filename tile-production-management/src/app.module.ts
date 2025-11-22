@@ -80,7 +80,7 @@ import { MeasurementTypesModule } from './measurement-types/measurement-types.mo
                 Measurement,
                 MeasurementType,
             ],
-            synchronize: false, // Set to true to auto-create tables (development/staging only)
+            synchronize: true, // Set to true to auto-create tables (development/staging only)
             migrationsRun: true // Set to true when initial db
         }),
         // MQTT and WebSocket modules

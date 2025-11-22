@@ -49,7 +49,7 @@ export class ProductionLinesService {
     async findOne(id: number): Promise<ProductionLine> {
         const productionLine = await this.productionLineRepository.findOne({
             where: { id },
-            relations: ['positions', 'activeBrickType'],
+            relations: ['positions', 'activeBrickType', 'positions.devices'],
         });
 
         if (!productionLine) {

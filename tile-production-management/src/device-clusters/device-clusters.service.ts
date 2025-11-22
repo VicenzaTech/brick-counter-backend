@@ -142,6 +142,17 @@ export class DeviceClustersService {
         return cluster;
     }
 
+    async findAllByLineId(id: number) {
+        const cluster = await this.clusterRepository.find({
+            where: {
+                productionLineId: id
+            },
+            relations: ['measurementType']
+        })
+
+        return cluster
+    }
+
     async update(
         id: number,
         dto: UpdateDeviceClusterDto,
@@ -174,7 +185,7 @@ export class DeviceClustersService {
 
         this.validateClusterConfig(dto.config);
         if (dto.code) cluster.code = dto.code
-        
+
         const commands = dto.config?.commands
         const code = cluster.code
         const topic = dto.config?.telemetry?.topic

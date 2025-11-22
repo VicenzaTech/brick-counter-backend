@@ -53,7 +53,7 @@ export class PositionsController {
         return this.positionsService.update(+id, updatePositionDto);
     }
 
-    @Patch(':id')
+    @Patch(':id/index')
     @Permission(PERMISSIONS.POSITION_UPDATE)
     updateIndex(
         @Param('id') id: string,
