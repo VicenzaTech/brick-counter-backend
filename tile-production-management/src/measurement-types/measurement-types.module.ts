@@ -10,5 +10,6 @@ import { AuthModule } from 'src/auth/auth.module';
   imports: [TypeOrmModule.forFeature([MeasurementType, DeviceCluster]), AuthModule],
   providers: [MeasurementTypesService],
   controllers: [MeasurementTypesController],
+  exports: [MeasurementTypesService]
 })
 export class MeasurementTypesModule {}

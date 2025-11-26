@@ -10,6 +10,7 @@ import { RedisModule } from 'src/common/redis/redis.module';
 @Module({
   imports: [TypeOrmModule.forFeature([ProductionLine, Workshop]), AuthModule, RedisModule],
   providers: [ProductionLinesService],
-  controllers: [ProductionLinesController]
+  controllers: [ProductionLinesController],
+  exports: [ProductionLinesService]
 })
 export class ProductionLinesModule {}
