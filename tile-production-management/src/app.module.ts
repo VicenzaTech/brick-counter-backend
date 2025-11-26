@@ -43,6 +43,7 @@ import { DeviceCluster } from './device-clusters/entities/device-cluster.entity'
 import { MeasurementType } from './measurement-types/entities/measurement-types.entity';
 import { DeviceClustersModule } from './device-clusters/device-clusters.module';
 import { MeasurementTypesModule } from './measurement-types/measurement-types.module';
+import { InternalApiModule } from './internal-api/internal-api.module';
 @Module({
     imports: [
         // Config module for environment variables
@@ -107,6 +108,7 @@ import { MeasurementTypesModule } from './measurement-types/measurement-types.mo
         MeasurementTypesModule,
         SimpleUniversalWebSocketModule,
         SimpleUniversalMqttModule,
+        InternalApiModule,
     ],
     providers: [],
 })

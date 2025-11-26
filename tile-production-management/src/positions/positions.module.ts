@@ -6,8 +6,9 @@ import { Position } from './entities/position.entity';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Position]), AuthModule],
-  providers: [PositionsService],
-  controllers: [PositionsController],
+    imports: [TypeOrmModule.forFeature([Position]), AuthModule],
+    providers: [PositionsService],
+    controllers: [PositionsController],
+    exports: [PositionsService]
 })
-export class PositionsModule {}
+export class PositionsModule { }
