@@ -128,6 +128,7 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
     // Subscribe to wildcard topics
     const topics = [
       'devices/+/telemetry',
+      'devices/+/+/telemetry',
       'devices/+/status',
     ];
 
@@ -166,7 +167,7 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
       });
     });
     // Thêm dòng này để nhận mọi thiết bị
-    this.client.subscribe('devices/+/telemetry', { qos: 0 }, (error, granted) => {
+    this.client.subscribe('devices/+/+/telemetry', { qos: 0 }, (error, granted) => {
       if (error) {
         this.logger.error(`❌ Failed to subscribe to devices/+/telemetry: ${error.message}`);
       } else {

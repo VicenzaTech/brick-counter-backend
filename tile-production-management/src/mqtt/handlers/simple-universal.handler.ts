@@ -58,7 +58,7 @@ export class SimpleUniversalHandler {
             const saveMessage = this.decodeInsidentMessage(message)
 
             const parts = topic.split('/');
-            const partIndex = 0
+            const partIndex = 1
             const clusterCode = parts[partIndex]; // ADD CLUSTER_CODE TO DEVICE ENTITY **
             const deviceId = parts[partIndex + 1]; //cluster code consider not need
             // Get device info (để lấy ID và relations)
@@ -161,8 +161,7 @@ export class SimpleUniversalHandler {
     ): void {
         // Use provided clusterCode and lookup namespace
         // const namespace = `/ws/${clusterCode}`;
-        clusterCode = "BR"
-        const namespace = '/ws/BR'
+        const namespace = '/ws/' + clusterCode;
 
         const gateway = this.wsGateways.get(namespace);
         this.logger.debug(`Looking up gateway for namespace: ${namespace}`);

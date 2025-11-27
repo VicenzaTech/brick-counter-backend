@@ -81,7 +81,7 @@ import { InternalApiModule } from './internal-api/internal-api.module';
                 Measurement,
                 MeasurementType,
             ],
-            synchronize: true, // Set to true to auto-create tables (development/staging only)
+            synchronize: false, // Set to true to auto-create tables (development/staging only)
             migrationsRun: true // Set to true when initial db
         }),
         // MQTT and WebSocket modules

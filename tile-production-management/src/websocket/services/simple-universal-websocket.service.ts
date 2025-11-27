@@ -20,7 +20,7 @@ export class SimpleUniversalWebSocketService implements OnModuleInit {
   private gateways = new Map<string, GenericWebSocketGateway>();
   
   // List of clusters - có thể load từ DB hoặc hardcode
-  private clusters = ['BR', 'TEMP', 'HM'];
+  private clusters = ['BR', 'TEMP', 'HM', 'mdg'];
 
   constructor(
     private readonly handler: SimpleUniversalHandler,

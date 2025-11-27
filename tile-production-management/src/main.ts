@@ -147,25 +147,30 @@ async function seedMeasurementTypes(dataSource: DataSource): Promise<number> {
         type: 'object',
         properties: {
             ts: { type: 'string', format: 'date-time' },
+            deviceId: { type: 'string' },
             metrics: {
                 type: 'object',
                 properties: {
-                    count: { type: 'number' },
-                    err_count: { type: 'number' },
+                    sensors: {
+                        type: 'object',
+                        additionalProperties: { type: 'number' },
+                    },
+                    total: { type: 'number' },
+                    error: {
+                        type: 'object',
+                        additionalProperties: true,
+                    },
                 },
-                required: ['count'],
-                additionalProperties: true,
+                required: ['sensors', 'total', 'error'],
+                additionalProperties: false,
             },
             quality: {
                 type: 'object',
-                properties: {
-                    rssi: { type: 'number' },
-                },
                 additionalProperties: true,
             },
         },
-        required: ['metrics'],
-        additionalProperties: true,
+        required: ['ts', 'deviceId', 'metrics', 'quality'],
+        additionalProperties: false,
     };
 
     const result = await dataSource.query(
@@ -491,6 +496,12 @@ async function bootstrap() {
     // Enable CORS for frontend
     app.enableCors({
         origin: 'http://localhost:3000',
+        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+        credentials: true,
+    });
+
+    app.enableCors({
+        origin: '*',
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         credentials: true,
     });
