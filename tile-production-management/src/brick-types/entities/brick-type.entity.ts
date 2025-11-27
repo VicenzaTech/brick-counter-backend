@@ -8,7 +8,7 @@ export class BrickType {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column({ unique: false })
   name: string;
 
   @Column({ nullable: true })
@@ -31,6 +31,37 @@ export class BrickType {
 
   @Column({ type: 'text', nullable: true })
   activeStatus?: string; // 'producing', 'paused', 'inactive'
+
+  // New fields from the factory production table
+  @Column({ type: 'text', nullable: true })
+  workshop?: string; // Phân xưởng
+
+  @Column({ type: 'text', nullable: true })
+  productionLine?: string; // Dây chuyền
+
+  @Column({ type: 'text', nullable: true })
+  tileSize?: string; // Kích thước SP
+
+  @Column({ type: 'int', nullable: true })
+  contractCycle?: number; // Chu kỳ khoán (phút)
+
+  @Column({ type: 'int', nullable: true })
+  kilnOutput?: number; // Sản lượng ra lò (m²)
+
+  @Column({ type: 'int', nullable: true })
+  qualityProductOutput?: number; // Sản lượng chính phẩm (m²)
+
+  @Column({ type: 'decimal', precision: 3, scale: 1, nullable: true })
+  deductionDays?: number; // Số ngày trừ khoán (ngày)
+
+  @Column({ type: 'int', nullable: true })
+  contractProduction?: number; // Sản lượng khoán (m²/tháng)
+
+  @Column({ type: 'int', nullable: true })
+  additionalContractWhenReducingCycle?: number; // Cộng khoán khi giảm chu kỳ (m²/tháng)
+
+  @Column({ type: 'int', nullable: true })
+  reducedContractWhenIncreasingCycle?: number; // Giảm khoán khi Tăng chu kỳ (m²/ngày)
 
   @OneToMany(() => ProductionSummary, (sum) => sum.brickType)
   summaries: ProductionSummary[];
