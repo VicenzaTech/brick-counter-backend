@@ -16,10 +16,11 @@ import { ProductionLine } from '../production-lines/entities/production-line.ent
 import { DevicesModule } from '../devices/devices.module';
 import { SimpleUniversalMqttService } from './services/simple-universal-mqtt.service';
 import { SimpleUniversalMqttModule } from './simple-universal-mqtt.module';
+import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
 
 @Global()
 @Module({
-    imports: [ConfigModule, DevicesModule, SimpleUniversalMqttModule, TypeOrmModule.forFeature([ProductionLine])],
+    imports: [ConfigModule, DevicesModule, SimpleUniversalMqttModule, TypeOrmModule.forFeature([ProductionLine, DeviceCluster])],
     controllers: [MqttController, DeviceCommandController],
     providers: [
         // Redis client provider

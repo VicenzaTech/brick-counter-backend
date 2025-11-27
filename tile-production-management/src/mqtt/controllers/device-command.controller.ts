@@ -11,6 +11,18 @@ export class DeviceCommandController {
    * Reset all devices on a production line
    * POST /mqtt/device-command/reset-line/1
    */
+  @Post('reset-counter/:clusterId')
+  async resetCounterCluster(
+    @Param('clusterId', ParseIntPipe) clusterId: number,
+  ): Promise<CommandResponse> {
+    this.logger.log(`REST API: Reset production line ${clusterId}`);
+    return this.deviceCommandService.resetCounterCluster(clusterId);
+  }
+
+  /**
+   * Reset all devices on a production line
+   * POST /mqtt/device-command/reset-line/1
+   */
   @Post('reset-line/:lineId')
   async resetLine(
     @Param('lineId', ParseIntPipe) lineId: number,

@@ -500,11 +500,11 @@ async function bootstrap() {
         credentials: true,
     });
 
-    app.enableCors({
-        origin: '*',
-        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-        credentials: true,
-    });
+    // app.enableCors({
+    //     origin: '*',
+    //     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    //     credentials: true,
+    // });
 
     // App use CookieParser
     app.use(cookieParser());

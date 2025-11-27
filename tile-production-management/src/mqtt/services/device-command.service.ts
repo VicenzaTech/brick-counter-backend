@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { MqttService } from '../mqtt.service';
 import { ProductionLine } from '../../production-lines/entities/production-line.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
 
 export interface CommandResponse {
   success: boolean;
@@ -11,6 +12,7 @@ export interface CommandResponse {
   commandId: string;
   topic: string;
   affectedDevices?: number;
+  failedDevices?: { deviceId: string, error: any }[];
 }
 
 @Injectable()
@@ -20,8 +22,91 @@ export class DeviceCommandService {
   constructor(
     @InjectRepository(ProductionLine)
     private readonly productionLineRepo: Repository<ProductionLine>,
+
+    @InjectRepository(DeviceCluster)
+    private readonly deviceClusterRepo: Repository<DeviceCluster>,
+
     private readonly mqttService: MqttService,
-  ) {}
+  ) { }
+
+  /**
+ * Reset all devices in a specific cluster
+ * @param clusterId Cluster ID to reset
+ * @returns CommandResponse
+ */
+  async resetCounterCluster(clusterId: number): Promise<CommandResponse> {
+    try {
+      const cluster = await this.deviceClusterRepo.findOne({
+        where: { id: clusterId },
+        relations: ['devices'] // Make sure to include the devices relation
+      });
+
+      if (!cluster) {
+        return {
+          success: false,
+          message: `Không tìm thấy cụm ${clusterId}`,
+          commandId: '',
+          topic: '',
+        };
+      }
+
+      const clusterCode = cluster.code;
+      const commandId = uuidv4();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 5); // Expire in 5 minutes
+
+      const command = {
+        action: "reset_counters",
+        timestamp: new Date().toISOString(),
+      };
+
+      // Get all devices in the cluster
+      const devices = cluster.devices || [];
+      const successfulDevices: string[] = [];
+      const failedDevices: { deviceId: string, error: any }[] = [];
+
+      // Send command to each device individually
+      for (const device of devices) {
+        try {
+          console.log("CHECK", device.deviceId)
+          const topic = `devices/${clusterCode}/${device.deviceId}/command`;
+
+          this.logger.debug(`Publishing reset command to device ${device.deviceId} in cluster ${clusterCode}`);
+          this.mqttService.publishMessage(topic, command, {
+            qos: 1,
+            retain: false,
+          });
+
+          successfulDevices.push(device.deviceId);
+        } catch (error) {
+          this.logger.error(`Failed to send command to device ${device.deviceId}:`, error);
+          failedDevices.push({ deviceId: device.deviceId, error });
+        }
+      }
+
+      this.logger.log(`Reset commands sent to ${successfulDevices.length} devices in cluster ${cluster.id} (${clusterCode})` +
+        (failedDevices.length ? `, failed for ${failedDevices.length} devices` : ''));
+
+      return {
+        success: failedDevices.length === 0,
+        message: failedDevices.length === 0
+          ? `Đã gửi lệnh reset đến ${successfulDevices.length} thiết bị trong cụm ${clusterId}`
+          : `Đã gửi lệnh reset đến ${successfulDevices.length} thiết bị, thất bại ${failedDevices.length} thiết bị trong cụm ${clusterId}`,
+        commandId,
+        topic: `devices/${clusterCode}/+/command`,
+        affectedDevices: successfulDevices.length,
+        failedDevices: failedDevices.length > 0 ? failedDevices : undefined
+      };
+    } catch (error) {
+      this.logger.error(`Error resetting cluster ${clusterId}:`, error);
+      return {
+        success: false,
+        message: `Lỗi khi gửi lệnh reset: ${error.message}`,
+        commandId: '',
+        topic: '',
+      };
+    }
+  }
 
   /**
    * Reset all devices on a production line
@@ -46,7 +131,7 @@ export class DeviceCommandService {
 
       // Map line ID to line code (DC-01, DC-02, etc.)
       const lineCode = `DC-0${lineId}`;
-      
+
       // Generate command
       const commandId = uuidv4();
       const expiresAt = new Date();
