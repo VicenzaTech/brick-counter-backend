@@ -1088,18 +1088,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
 
-  // Enable CORS for frontend
+  // Enable CORS for all origins
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: /(localhost|192\.168\.1\.\d+)(:\d+)?$/,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   });
-
-  // app.enableCors({
-  //     origin: '*',
-  //     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  //     credentials: true,
-  // });
 
   // App use CookieParser
   app.use(cookieParser());
