@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { ProductionStage } from '../../production-stages/entities/production-stage.entity';
 import { ProductionLine } from '../../production-lines/entities/production-line.entity';
 import { Device } from '../../devices/entities/device.entity';
 import { Min } from 'class-validator';
@@ -26,4 +27,11 @@ export class Position {
 
     @OneToMany(() => Device, (device) => device.position)
     devices: Device[];
+
+    @ManyToOne(() => ProductionStage, (stage) => stage.positions, { nullable: true })
+    @JoinColumn({ name: 'productionStageId' })
+    productionStage: ProductionStage | null;
+
+    @Column({ nullable: true })
+    productionStageId: number | null;
 }

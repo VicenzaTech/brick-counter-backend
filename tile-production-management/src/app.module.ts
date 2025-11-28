@@ -41,9 +41,11 @@ import { MeasurementModule } from './measurement/measurement.module';
 import { Measurement } from './measurement/entities/measurement.entity';
 import { DeviceCluster } from './device-clusters/entities/device-cluster.entity';
 import { MeasurementType } from './measurement-types/entities/measurement-types.entity';
+import { ProductionStage } from './production-stages/entities/production-stage.entity';
 import { DeviceClustersModule } from './device-clusters/device-clusters.module';
 import { MeasurementTypesModule } from './measurement-types/measurement-types.module';
 import { InternalApiModule } from './internal-api/internal-api.module';
+import { ProductionStagesModule } from './production-stages/production-stages.module';
 @Module({
     imports: [
         // Config module for environment variables
@@ -80,8 +82,9 @@ import { InternalApiModule } from './internal-api/internal-api.module';
                 DeviceCluster,
                 Measurement,
                 MeasurementType,
+                ProductionStage,
             ],
-            synchronize: false, // Set to true to auto-create tables (development/staging only)
+            synchronize: true, // Set to true to auto-create tables (development/staging only)
             migrationsRun: true // Set to true when initial db
         }),
         // MQTT and WebSocket modules
@@ -109,6 +112,7 @@ import { InternalApiModule } from './internal-api/internal-api.module';
         SimpleUniversalWebSocketModule,
         SimpleUniversalMqttModule,
         InternalApiModule,
+        ProductionStagesModule,
     ],
     providers: [],
 })
