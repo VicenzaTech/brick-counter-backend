@@ -3,8 +3,8 @@ import { ActivityAction, ActivityEntityType } from "src/activity-log/entities/ac
 export type LogIntercepterBody = {
     description?: string;
     meta?: {
-        before?: string;
-        after?: string;
+        before?: unknown;
+        after?: unknown;
         name?: string;
         [key: string]: unknown;
     };

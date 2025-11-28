@@ -66,18 +66,7 @@ export class MeasurementTypesController {
     @Param('id') id: string,
     @Body() dto: UpdateMeasurementTypeDto,
   ): Promise<LoggedResponse<MeasurementType>> {
-    const mt = await this.measurementTypesService.update(+id, dto);
-    return {
-      data: mt,
-      log: {
-        action: 'UPDATE_MEASUREMENT_TYPE' as ActivityAction,
-        actionType: 'UPDATE_MEASUREMENT_TYPE' as ActivityAction,
-        entityType: ActivityEntityType.MeasurementType,
-        description: `Cập nhật loại phép đo ${mt.name}`,
-        entityId: mt.id,
-        entityName: mt.name,
-      },
-    };
+    return this.measurementTypesService.update(+id, dto);
   }
 
   @Delete(':id')
@@ -91,7 +80,7 @@ export class MeasurementTypesController {
         action: 'DELETE_MEASUREMENT_TYPE' as ActivityAction,
         actionType: 'DELETE_MEASUREMENT_TYPE' as ActivityAction,
         entityType: ActivityEntityType.MeasurementType,
-        description: `Xoá loại phép đo id=${id}`,
+        description: `Xóa loại phép đo id=${id}`,
         entityId: +id,
         entityName: undefined,
       },

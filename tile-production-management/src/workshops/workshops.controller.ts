@@ -12,7 +12,8 @@ import {
 } from '@nestjs/common';
 import { WorkshopsService } from './workshops.service';
 import { CreateWorkshopDto } from './dtos/create-workshop.dto';
-import { UpdateWorkshopDto } from './dtos/update-workshop.dto'; import type { Workshop } from './entities/workshop.entity';
+import { UpdateWorkshopDto } from './dtos/update-workshop.dto';
+import type { Workshop } from './entities/workshop.entity';
 import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 import { Permission } from 'src/auth/decorator/permission/permission.decorator';
@@ -61,18 +62,7 @@ export class WorkshopsController {
         @Param('id') id: number,
         @Body() updateWorkshopDto: UpdateWorkshopDto,
     ): Promise<LoggedResponse<Workshop>> {
-        const workshop = await this.workshopsService.update(+id, updateWorkshopDto);
-        return {
-            data: workshop,
-            log: {
-                action: 'UPDATE_WORKSHOP' as ActivityAction,
-                actionType: 'UPDATE_WORKSHOP' as ActivityAction,
-                entityType: ActivityEntityType.Workshop,
-                description: `Cập nhật phân xưởng ${workshop.name}`,
-                entityId: workshop.id,
-                entityName: workshop.name,
-            },
-        };
+        return this.workshopsService.update(+id, updateWorkshopDto);
     }
 
     @Delete(':id')
@@ -86,10 +76,11 @@ export class WorkshopsController {
                 action: 'DELETE_WORKSHOP' as ActivityAction,
                 actionType: 'DELETE_WORKSHOP' as ActivityAction,
                 entityType: ActivityEntityType.Workshop,
-                description: `Xoá phân xưởng id=${id}`,
+                description: `Xóa phân xưởng id=${id}`,
                 entityId: +id,
                 entityName: undefined,
             },
         };
     }
 }
+

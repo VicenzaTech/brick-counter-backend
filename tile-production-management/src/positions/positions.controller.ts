@@ -63,18 +63,7 @@ export class PositionsController {
         @Param('id') id: string,
         @Body() updatePositionDto: UpdatePositionDto,
     ): Promise<LoggedResponse<Position>> {
-        const position = await this.positionsService.update(+id, updatePositionDto);
-        return {
-            data: position,
-            log: {
-                action: 'UPDATE_POSITION' as ActivityAction,
-                actionType: 'UPDATE_POSITION' as ActivityAction,
-                entityType: ActivityEntityType.Position,
-                description: `Cập nhật vị trí ${position.name}`,
-                entityId: position.id,
-                entityName: position.name,
-            },
-        };
+        return this.positionsService.update(+id, updatePositionDto);
     }
 
     @Patch(':id/index')
@@ -83,18 +72,7 @@ export class PositionsController {
         @Param('id') id: string,
         @Body() updatePositionIndexDto: UpdatePossitionIndexDto,
     ): Promise<LoggedResponse<Position>> {
-        const position = await this.positionsService.updateIndex(+id, updatePositionIndexDto);
-        return {
-            data: position,
-            log: {
-                action: 'UPDATE_POSITION_INDEX' as ActivityAction,
-                actionType: 'UPDATE_POSITION_INDEX' as ActivityAction,
-                entityType: ActivityEntityType.Position,
-                description: `Cập nhật thứ tự hiển thị cho vị trí ${position.name}`,
-                entityId: position.id,
-                entityName: position.name,
-            },
-        };
+        return this.positionsService.updateIndex(+id, updatePositionIndexDto);
     }
 
     @Delete(':id')
@@ -108,10 +86,11 @@ export class PositionsController {
                 action: 'DELETE_POSITION' as ActivityAction,
                 actionType: 'DELETE_POSITION' as ActivityAction,
                 entityType: ActivityEntityType.Position,
-                description: `Xoá vị trí id=${id}`,
+                description: `Xóa vị trí id=${id}`,
                 entityId: +id,
                 entityName: undefined,
             },
         };
     }
 }
+

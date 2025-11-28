@@ -6,6 +6,8 @@ import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entit
 import { CreateMeasurementTypeDto } from './dtos/create-measurement-type.dto';
 import { UpdateMeasurementTypeDto } from './dtos/update-measurement-type.dto';
 import Ajv from 'ajv';
+import { LoggedResponse } from 'src/common/type/log.response';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 
 @Injectable()
 export class MeasurementTypesService {
@@ -70,8 +72,9 @@ export class MeasurementTypesService {
     async update(
         id: number,
         dto: UpdateMeasurementTypeDto,
-    ): Promise<MeasurementType> {
+    ): Promise<LoggedResponse<MeasurementType>> {
         const mt = await this.findOne(id);
+        const before = { ...mt };
 
         if (dto.code && dto.code !== mt.code) {
             const existing = await this.measurementTypeRepository.findOne({
@@ -91,7 +94,23 @@ export class MeasurementTypesService {
 
         Object.assign(mt, dto);
 
-        return this.measurementTypeRepository.save(mt);
+        const updated = await this.measurementTypeRepository.save(mt);
+
+        return {
+            data: updated,
+            log: {
+                action: 'UPDATE_MEASUREMENT_TYPE' as ActivityAction,
+                actionType: 'UPDATE_MEASUREMENT_TYPE' as ActivityAction,
+                entityType: ActivityEntityType.MeasurementType,
+                description: `Cập nhật loại phép đo ${updated.name}`,
+                entityId: updated.id,
+                entityName: updated.name,
+                meta: {
+                    before,
+                    after: updated,
+                },
+            },
+        };
     }
 
     async remove(id: number): Promise<void> {

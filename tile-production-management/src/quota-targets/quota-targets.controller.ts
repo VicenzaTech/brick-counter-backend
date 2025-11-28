@@ -80,18 +80,7 @@ export class QuotaTargetsController {
         @Param('id', ParseIntPipe) id: number,
         @Body() updateDto: UpdateQuotaTargetDto,
     ): Promise<LoggedResponse<any>> {
-        const quota = await this.quotaService.update(id, updateDto);
-        return {
-            data: quota,
-            log: {
-                action: 'UPDATE_QUOTA_TARGET' as ActivityAction,
-                actionType: 'UPDATE_QUOTA_TARGET' as ActivityAction,
-                entityType: ActivityEntityType.QuotaTarget,
-                description: `Cập nhật chỉ tiêu sản lượng id=${id}`,
-                entityId: id,
-                entityName: undefined,
-            },
-        };
+        return this.quotaService.update(id, updateDto);
     }
 
     @Delete(':id')
@@ -104,10 +93,11 @@ export class QuotaTargetsController {
                 action: 'DELETE_QUOTA_TARGET' as ActivityAction,
                 actionType: 'DELETE_QUOTA_TARGET' as ActivityAction,
                 entityType: ActivityEntityType.QuotaTarget,
-                description: `Xoá chỉ tiêu sản lượng id=${id}`,
+                description: `Xóa chỉ tiêu sản lượng id=${id}`,
                 entityId: id,
                 entityName: undefined,
             },
         };
     }
 }
+

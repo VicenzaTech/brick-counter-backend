@@ -81,18 +81,7 @@ export class ProductionMetricsController {
         @Param('id', ParseIntPipe) id: number,
         @Body() updateDto: UpdateProductionMetricDto,
     ): Promise<LoggedResponse<any>> {
-        const metric = await this.metricsService.update(id, updateDto);
-        return {
-            data: metric,
-            log: {
-                action: 'UPDATE_PRODUCTION_METRIC' as ActivityAction,
-                actionType: 'UPDATE_PRODUCTION_METRIC' as ActivityAction,
-                entityType: ActivityEntityType.ProductionMetric,
-                description: `Cập nhật cấu hình chỉ số sản xuất id=${id}`,
-                entityId: id,
-                entityName: undefined,
-            },
-        };
+        return this.metricsService.update(id, updateDto);
     }
 
     @Delete(':id')
@@ -105,10 +94,11 @@ export class ProductionMetricsController {
                 action: 'DELETE_PRODUCTION_METRIC' as ActivityAction,
                 actionType: 'DELETE_PRODUCTION_METRIC' as ActivityAction,
                 entityType: ActivityEntityType.ProductionMetric,
-                description: `Xoá cấu hình chỉ số sản xuất id=${id}`,
+                description: `Xóa cấu hình chỉ số sản xuất id=${id}`,
                 entityId: id,
                 entityName: undefined,
             },
         };
     }
 }
+

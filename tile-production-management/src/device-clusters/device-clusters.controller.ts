@@ -9,7 +9,6 @@ import {
     ParseIntPipe,
     Patch,
     Post,
-    Put,
     UseGuards,
 } from '@nestjs/common';
 import { DeviceClustersService } from './device-clusters.service';
@@ -72,18 +71,7 @@ export class DeviceClustersController {
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateDeviceClusterDto,
     ): Promise<LoggedResponse<DeviceCluster>> {
-        const cluster = await this.deviceClustersService.update(+id, dto);
-        return {
-            data: cluster,
-            log: {
-                action: 'UPDATE_DEVICE_CLUSTER' as ActivityAction,
-                actionType: 'UPDATE_DEVICE_CLUSTER' as ActivityAction,
-                entityType: ActivityEntityType.DeviceCluster,
-                description: `Cập nhật cụm thiết bị ${cluster.name}`,
-                entityId: cluster.id,
-                entityName: cluster.name,
-            },
-        };
+        return this.deviceClustersService.update(+id, dto);
     }
 
     @Delete(':id')
@@ -97,10 +85,11 @@ export class DeviceClustersController {
                 action: 'DELETE_DEVICE_CLUSTER' as ActivityAction,
                 actionType: 'DELETE_DEVICE_CLUSTER' as ActivityAction,
                 entityType: ActivityEntityType.DeviceCluster,
-                description: `Xoá cụm thiết bị id=${id}`,
+                description: `Xóa cụm thiết bị id=${id}`,
                 entityId: +id,
                 entityName: undefined,
             },
         };
     }
 }
+

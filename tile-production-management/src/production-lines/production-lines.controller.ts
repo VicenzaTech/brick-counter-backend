@@ -62,18 +62,7 @@ export class ProductionLinesController {
         @Param('id') id: string,
         @Body() updateProductionLineDto: UpdateProductionLineDto,
     ): Promise<LoggedResponse<Partial<ProductionLine>>> {
-        const line = await this.productionLinesService.update(+id, updateProductionLineDto);
-        return {
-            data: line,
-            log: {
-                action: 'UPDATE_PRODUCTION_LINE' as ActivityAction,
-                actionType: 'UPDATE_PRODUCTION_LINE' as ActivityAction,
-                entityType: ActivityEntityType.ProductionLine,
-                description: `Cập nhật dây chuyền sản xuất id=${id}`,
-                entityId: +id,
-                entityName: (line as any)?.name,
-            },
-        };
+        return this.productionLinesService.update(+id, updateProductionLineDto);
     }
 
     @Delete(':id')
@@ -87,10 +76,11 @@ export class ProductionLinesController {
                 action: 'DELETE_PRODUCTION_LINE' as ActivityAction,
                 actionType: 'DELETE_PRODUCTION_LINE' as ActivityAction,
                 entityType: ActivityEntityType.ProductionLine,
-                description: `Xoá dây chuyền sản xuất id=${id}`,
+                description: `Xóa dây chuyền sản xuất id=${id}`,
                 entityId: +id,
                 entityName: undefined,
             },
         };
     }
 }
+

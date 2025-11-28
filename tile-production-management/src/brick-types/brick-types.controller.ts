@@ -62,18 +62,7 @@ export class BrickTypesController {
         @Param('id') id: string,
         @Body() updateBrickTypeDto: UpdateBrickTypeDto,
     ): Promise<LoggedResponse<BrickType>> {
-        const updated = await this.brickTypesService.update(+id, updateBrickTypeDto);
-        return {
-            data: updated,
-            log: {
-                action: 'UPDATE_BRICK_TYPE' as ActivityAction,
-                actionType: 'UPDATE_BRICK_TYPE' as ActivityAction,
-                entityType: ActivityEntityType.BrickType,
-                description: `Cập nhật loại gạch ${updated.name}`,
-                entityId: updated.id,
-                entityName: updated.name,
-            },
-        };
+        return this.brickTypesService.update(+id, updateBrickTypeDto);
     }
 
     @Delete(':id')
@@ -87,7 +76,7 @@ export class BrickTypesController {
                 action: 'DELETE_BRICK_TYPE' as ActivityAction,
                 actionType: 'DELETE_BRICK_TYPE' as ActivityAction,
                 entityType: ActivityEntityType.BrickType,
-                description: `Xoá loại gạch id=${id}`,
+                description: `Xóa loại gạch id=${id}`,
                 entityId: +id,
                 entityName: undefined,
             },
@@ -146,3 +135,4 @@ export class BrickTypesController {
         };
     }
 }
+

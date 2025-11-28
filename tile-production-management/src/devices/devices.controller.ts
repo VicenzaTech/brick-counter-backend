@@ -64,18 +64,7 @@ export class DevicesController {
         @Param('id') id: number,
         @Body() updateDeviceDto: UpdateDeviceDto,
     ): Promise<LoggedResponse<Device>> {
-        const device = await this.devicesService.update(+id, updateDeviceDto);
-        return {
-            data: device,
-            log: {
-                action: 'UPDATE_DEVICE' as ActivityAction,
-                actionType: 'UPDATE_DEVICE' as ActivityAction,
-                entityType: ActivityEntityType.Device,
-                description: `Cập nhật thiết bị ${device.name}`,
-                entityId: device.id,
-                entityName: device.name,
-            },
-        };
+        return this.devicesService.update(+id, updateDeviceDto);
     }
 
     @Delete(':id')
@@ -89,7 +78,7 @@ export class DevicesController {
                 action: 'DELETE_DEVICE' as ActivityAction,
                 actionType: 'DELETE_DEVICE' as ActivityAction,
                 entityType: ActivityEntityType.Device,
-                description: `Xoá thiết bị id=${id}`,
+                description: `Xóa thiết bị id=${id}`,
                 entityId: +id,
                 entityName: undefined,
             },
@@ -127,7 +116,6 @@ export class DevicesController {
      */
     @Get('telemetry/latest')
     @Permission(PERMISSIONS.DEVICE_READ)
-
     getLatestTelemetry() {
         return this.devicesService.getLatestTelemetry();
     }
@@ -137,41 +125,13 @@ export class DevicesController {
      */
     @Get(':deviceId/telemetry/latest')
     @Permission(PERMISSIONS.DEVICE_READ)
-
     getDeviceLatestTelemetry(@Param('deviceId') deviceId: string) {
         return this.devicesService.getDeviceLatestTelemetry(deviceId);
     }
 
     /**
-     * Clear MQTT cache
+     * Reset Device
      */
-    // @Post('mqtt/clear-cache')
-    // @HttpCode(HttpStatus.OK)
-    // clearMqttCache() {
-    //     this.devicesMqttHandler.clearCache();
-    //     return {
-    //         message: 'MQTT cache cleared successfully',
-    //         timestamp: new Date().toISOString(),
-    //     };
-    // }
-    // @Post('mqtt/clear-cache')
-    // @Permission(PERMISSIONS.DEVICE_READ)
-
-    // @HttpCode(HttpStatus.OK)
-    // clearMqttCache() {
-    //     this.devicesMqttHandler.clearCache();
-    //     return {
-    //         message: 'MQTT cache cleared successfully',
-    //         timestamp: new Date().toISOString(),
-    //     };
-    // }
-
-
-    /**
-     * Reset Device  
-     * 
-    */
-
     @Post(':deviceId/checkStatus')
     @Permission(PERMISSIONS.DEVICE_UPDATE)
     async checkDeviceOnline(@Param('deviceId') id: number): Promise<LoggedResponse<any>> {
@@ -189,3 +149,4 @@ export class DevicesController {
         };
     }
 }
+
