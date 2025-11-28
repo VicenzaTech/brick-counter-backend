@@ -16,8 +16,17 @@ export class ProductionStage {
   @Column({ type: 'int', default: 0 })
   order: number;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: false })
   isActive: boolean;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  status: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  startTime: Date;
+
+  @Column({ type: 'int', nullable: true })
+  productId: number;
 
   // One-to-Many relationship with Position
   @OneToMany(() => Position, position => position.productionStage, { nullable: true })

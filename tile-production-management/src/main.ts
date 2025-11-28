@@ -788,7 +788,7 @@ async function seedDeviceCluster(
 
 async function seedDevices(dataSource: DataSource) {
   console.log('🔁 Seeding devices for production line 1...');
-  
+
   try {
     // Get production line 1
     const productionLine = await dataSource.query(
@@ -1024,7 +1024,7 @@ async function seedMeasurements(dataSource: DataSource) {
 
 async function seedWorkShopProductionLine(dataSource: DataSource) {
   console.log('🏭 Seeding workshops and production lines...');
-  
+
   // 1. Create or find workshops
   const workshopName = 'Phân xưởng 1';
   let workshop = await dataSource.query(
@@ -1069,7 +1069,7 @@ async function seedWorkShopProductionLine(dataSource: DataSource) {
       console.log(`   • Created production line: ${lineName} (ID: ${result[0].id})`);
     }
   }
-  
+
   return { workshopId, lineIds };
 }
 
@@ -1079,12 +1079,17 @@ async function bootstrap() {
 
   // Enable CORS for all origins
   app.enableCors({
-    origin: '*',
+    origin: [
+      'http://localhost:3000',  // For development
+      'http://localhost:3001',  // In case you use a different port
+      // Add other allowed origins here in production
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
     preflightContinue: false,
-    optionsSuccessStatus: 204
+    optionsSuccessStatus: 204,
+    credentials: true  // If you need to send cookies or auth headers
   });
 
   // App use CookieParser
@@ -1100,7 +1105,7 @@ async function bootstrap() {
   // Seed measurement types and device cluster
   const measurementTypeId = await seedMeasurementTypes(dataSource);
   await seedDeviceCluster(dataSource, measurementTypeId);
-  
+
   await seedDevices(dataSource);
 
   // Validator Request Body Pipe 
@@ -1118,85 +1123,85 @@ async function seedProductionStages(dataSource: DataSource) {
 
   // Define production line names
   const productionLineNames = ['Dây chuyền 1', 'Dây chuyền 2', 'Dây chuyền 5', 'Dây chuyền 6'];
-  
+
   // Base stages for most production lines
   const baseStages = [
-    { 
-      name: 'Ép', 
-      description: 'Công đoạn ép gạch', 
+    {
+      name: 'Ép',
+      description: 'Công đoạn ép gạch',
       order: 1,
       positions: [
         { name: 'Sau máy ép', description: 'Vị trí sau máy ép', index: 1 },
       ]
     },
-    { 
-      name: 'Nung', 
-      description: 'Công đoạn nung gạch', 
+    {
+      name: 'Nung',
+      description: 'Công đoạn nung gạch',
       order: 2,
       positions: [
         { name: 'Trước lò nung', description: 'Trước lò nung', index: 1 },
         { name: 'Sau lò nung', description: 'Sau lò nung', index: 2 }
       ]
     },
-    { 
-      name: 'Mài', 
-      description: 'Công đoạn mài gạch', 
+    {
+      name: 'Mài',
+      description: 'Công đoạn mài gạch',
       order: 3,
       positions: [
         { name: 'Trước mài', description: 'Trước mài', index: 1 },
         { name: 'Sau mài', description: 'Sau mài', index: 2 }
       ]
     },
-    { 
-      name: 'Đóng hộp', 
-      description: 'Công đoạn đóng gói thành phẩm', 
+    {
+      name: 'Đóng hộp',
+      description: 'Công đoạn đóng gói thành phẩm',
       order: 4,
       positions: [
         { name: 'Trước đóng hộp', description: 'Bàn đóng gói số 1', index: 1 },
       ]
     },
   ];
-  
+
   // Special stages for production line 5 (Dây chuyền 5)
   const line5Stages = [
-    { 
-      name: 'Ép', 
-      description: 'Công đoạn ép gạch', 
+    {
+      name: 'Ép',
+      description: 'Công đoạn ép gạch',
       order: 1,
       positions: [
         { name: 'Sau máy ép', description: 'Vị trí sau máy ép dây chuyền 5', index: 1 },
       ]
     },
-    { 
-      name: 'Nung xương', 
-      description: 'Công đoạn nung xương gạch', 
+    {
+      name: 'Nung xương',
+      description: 'Công đoạn nung xương gạch',
       order: 2,
       positions: [
         { name: 'Trước lò nung xương', description: 'Trước lò nung xương dây chuyền 5', index: 1 },
         { name: 'Sau lò nung xương', description: 'Sau lò nung xương dây chuyền 5', index: 2 }
       ]
     },
-    { 
-      name: 'Nung men', 
-      description: 'Công đoạn nung men gạch', 
+    {
+      name: 'Nung men',
+      description: 'Công đoạn nung men gạch',
       order: 3,
       positions: [
         { name: 'Trước lò nung men', description: 'Trước lò nung men dây chuyền 5', index: 1 },
         { name: 'Sau lò nung men', description: 'Sau lò nung men dây chuyền 5', index: 2 }
       ]
     },
-    { 
-      name: 'Mài', 
-      description: 'Công đoạn mài gạch', 
+    {
+      name: 'Mài',
+      description: 'Công đoạn mài gạch',
       order: 4,
       positions: [
         { name: 'Trước mài', description: 'Trước mài dây chuyền 5', index: 1 },
         { name: 'Sau mài', description: 'Sau mài dây chuyền 5', index: 2 }
       ]
     },
-    { 
-      name: 'Đóng hộp', 
-      description: 'Công đoạn đóng gói thành phẩm', 
+    {
+      name: 'Đóng hộp',
+      description: 'Công đoạn đóng gói thành phẩm',
       order: 5,
       positions: [
         { name: 'Bàn đóng gói', description: 'Bàn đóng gói số 1 dây chuyền 5', index: 1 },
@@ -1206,44 +1211,44 @@ async function seedProductionStages(dataSource: DataSource) {
 
   // Special stages for production line 6 (Dây chuyền 6)
   const line6Stages = [
-    { 
-      name: 'Ép', 
-      description: 'Công đoạn ép gạch', 
+    {
+      name: 'Ép',
+      description: 'Công đoạn ép gạch',
       order: 1,
       positions: [
         { name: 'Sau máy ép', description: 'Vị trí sau máy ép dây chuyền 6', index: 1 },
       ]
     },
-    { 
-      name: 'Sấy', 
-      description: 'Công đoạn sấy gạch', 
+    {
+      name: 'Sấy',
+      description: 'Công đoạn sấy gạch',
       order: 2,
       positions: [
         { name: 'Trước lò sấy', description: 'Trước lò sấy dây chuyền 6', index: 1 },
         { name: 'Sau lò sấy', description: 'Sau lò sấy dây chuyền 6', index: 2 }
       ]
     },
-    { 
-      name: 'Nung', 
-      description: 'Công đoạn nung gạch', 
+    {
+      name: 'Nung',
+      description: 'Công đoạn nung gạch',
       order: 3,
       positions: [
         { name: 'Trước lò nung', description: 'Trước lò nung dây chuyền 6', index: 1 },
         { name: 'Sau lò nung', description: 'Sau lò nung dây chuyền 6', index: 2 }
       ]
     },
-    { 
-      name: 'Mài', 
-      description: 'Công đoạn mài gạch', 
+    {
+      name: 'Mài',
+      description: 'Công đoạn mài gạch',
       order: 4,
       positions: [
         { name: 'Trước mài', description: 'Trước mài dây chuyền 6', index: 1 },
         { name: 'Sau mài', description: 'Sau mài dây chuyền 6', index: 2 }
       ]
     },
-    { 
-      name: 'Đóng hộp', 
-      description: 'Công đoạn đóng gói thành phẩm', 
+    {
+      name: 'Đóng hộp',
+      description: 'Công đoạn đóng gói thành phẩm',
       order: 5,
       positions: [
         { name: 'Bàn đóng gói', description: 'Bàn đóng gói số 1 dây chuyền 6', index: 1 },
@@ -1257,7 +1262,7 @@ async function seedProductionStages(dataSource: DataSource) {
       where: { name: lineName },
       relations: ['workshop']
     });
-    
+
     if (!productionLine) {
       console.warn(`⚠️  Production line "${lineName}" not found, skipping...`);
       continue;
@@ -1274,7 +1279,7 @@ async function seedProductionStages(dataSource: DataSource) {
       stagesToUse = line6Stages;
       console.log(`   → Using special stages for Dây chuyền 6`);
     }
-    
+
     for (const stageData of stagesToUse) {
       // Check if stage already exists for this line
       let stage = await productionStageRepo.findOne({
@@ -1292,7 +1297,7 @@ async function seedProductionStages(dataSource: DataSource) {
           description: stageData.description,
           order: stageData.order,
           productionLine,
-          isActive: true
+          isActive: false
         });
         await productionStageRepo.save(stage);
       }
