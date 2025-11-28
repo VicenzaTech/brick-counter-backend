@@ -25,7 +25,7 @@ export class Device {
     @Column({ nullable: true })
     type?: string;
 
-    @Column({ unique: true })
+    @Column({ nullable: true })
     serial_number: string;
 
     @Column({ type: 'date', nullable: true })

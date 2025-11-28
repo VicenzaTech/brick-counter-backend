@@ -1,6 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
+import { ProductionLine } from './production-lines/entities/production-line.entity';
+import { ProductionStage } from './production-stages/entities/production-stage.entity';
+import { Position } from './positions/entities/position.entity';
 import cookieParser from 'cookie-parser';
 import type { DeviceExtraInfo } from './common/mqtt/device-extra-info';
 import { ValidationPipe } from '@nestjs/common';
@@ -559,73 +562,8 @@ const newBrickTypes = {
     }
   ]
 }
-// Dữ liệu thiết bị mẫu cho PX-01, 1 dây chuyền
-const DEVICES_DATA = [
-  {
-    name: 'Sau máy ép 1',
-    deviceId: 'SAU-ME-01',
-    type: 'counter',
-    serial_number: 'SAU-ME-01-2024',
-    position: 'Sau máy ép',
-    description: 'Máy đếm gạch tại vị trí sau máy ép 1',
-  },
-  {
-    name: 'Sau máy ép 2',
-    deviceId: 'SAU-ME-02',
-    type: 'counter',
-    serial_number: 'SAU-ME-02-2024',
-    position: 'Sau máy ép',
-    description: 'Máy đếm gạch tại vị trí sau máy ép 2',
-  },
-  {
-    name: 'Trước lò nung 1',
-    deviceId: 'TRUOC-LN-01',
-    type: 'counter',
-    serial_number: 'TRUOC-LN-01-2024',
-    position: 'Trước lò nung',
-    description: 'Máy đếm gạch tại vị trí trước lò nung 1',
-  },
-  {
-    name: 'Trước lò nung 2',
-    deviceId: 'TRUOC-LN-02',
-    type: 'counter',
-    serial_number: 'TRUOC-LN-02-2024',
-    position: 'Trước lò nung',
-    description: 'Máy đếm gạch tại vị trí trước lò nung 2',
-  },
-  {
-    name: 'Sau lò nung 1',
-    deviceId: 'SAU-LN-01',
-    type: 'counter',
-    serial_number: 'SAU-LN-01-2024',
-    position: 'Sau lò nung',
-    description: 'Máy đếm gạch tại vị trí sau lò nung 1',
-  },
-  {
-    name: 'Trước mài mặt 1',
-    deviceId: 'TRUOC-MM-01',
-    type: 'counter',
-    serial_number: 'TRUOC-MM-01-2024',
-    position: 'Trước mài mặt',
-    description: 'Máy đếm gạch tại vị trí trước mài mặt 1',
-  },
-  {
-    name: 'Sau mài cạnh 1',
-    deviceId: 'SAU-MC-01',
-    type: 'counter',
-    serial_number: 'SAU-MC-01-2024',
-    position: 'Sau mài cạnh',
-    description: 'Máy đếm gạch tại vị trí sau mài cạnh 1',
-  },
-  {
-    name: 'Trước đóng hộp 1',
-    deviceId: 'TRUOC-DH-01',
-    type: 'counter',
-    serial_number: 'TRUOC-DH-01-2024',
-    position: 'Trước đóng hộp',
-    description: 'Máy đếm gạch tại vị trí trước đóng hộp 1',
-  },
-];
+
+
 
 // Các loại gạch cơ bản (seed cho bảng brick_types)
 const baseProduct = {
@@ -849,137 +787,137 @@ async function seedDeviceCluster(
 }
 
 async function seedDevices(dataSource: DataSource) {
-  console.log('🔁 Auto-seeding devices for PX-01, DC-01...\n');
+  console.log('🔁 Seeding devices for production line 1...');
+  
   try {
-    // await seedBrickTypes(dataSource);
-
-    // 1. Tìm hoặc tạo Workshop PX-01
-    const workshopName = 'Phân xưởng 1';
-    let workshop = await dataSource.query(
-      `SELECT id, name FROM workshops WHERE name = $1 LIMIT 1`,
-      [workshopName],
+    // Get production line 1
+    const productionLine = await dataSource.query(
+      `SELECT id, name FROM production_lines WHERE name = $1 LIMIT 1`,
+      ['Dây chuyền 1']
     );
 
-    let workshopId: number;
-    if (!workshop || workshop.length === 0) {
-      console.log('➕ Creating Workshop PX-01...');
-      const result = await dataSource.query(
-        `INSERT INTO workshops (name, location) VALUES ($1, $2) RETURNING id, name`,
-        [workshopName, 'Nhà máy chính'],
-      );
-      workshopId = result[0].id;
-      console.log(`✅ Created Workshop: ${result[0].name} (ID: ${workshopId})\n`);
-    } else {
-      workshopId = workshop[0].id;
-      console.log(`✅ Found Workshop: ${workshop[0].name} (ID: ${workshopId})\n`);
+    if (!productionLine || productionLine.length === 0) {
+      console.warn('⚠️  Dây chuyền 1 not found. Please seed production lines first.');
+      return;
     }
 
-    // 2. Tìm hoặc tạo 2 dây chuyền cho PX-01
-    const lineNames = ['Dây chuyền 1', 'Dây chuyền 2', "Dây chuyền 5", "Dây chuyền 6"];
-    const lineIds: number[] = [];
+    const line = productionLine[0];
+    console.log(`   • Processing production line: ${line.name} (ID: ${line.id})`);
 
-    for (const lineName of lineNames) {
-      const existing = await dataSource.query(
-        `SELECT id FROM production_lines WHERE name = $1 AND "workshopId" = $2 LIMIT 1`,
-        [lineName, workshopId],
-      );
+    // Get device cluster (assuming it exists)
+    const deviceCluster = await dataSource.query(
+      `SELECT id FROM devices_cluster WHERE code = $1 LIMIT 1`,
+      ['BRICK_COUNTER']
+    );
 
-      if (existing && existing.length > 0) {
-        lineIds.push(existing[0].id);
-        console.log(`✅ Found production line: ${lineName} (ID: ${existing[0].id})`);
-      } else {
-        const result = await dataSource.query(
-          `INSERT INTO production_lines (name, "workshopId", status) 
-                     VALUES ($1, $2, 'active') RETURNING id`,
-          [lineName, workshopId],
-        );
-        lineIds.push(result[0].id);
-        console.log(`➕ Created production line: ${lineName} (ID: ${result[0].id})`);
+    if (!deviceCluster || deviceCluster.length === 0) {
+      console.warn('⚠️  No device cluster found. Please seed device clusters first.');
+      return;
+    }
+    const clusterId = deviceCluster[0].id;
+
+    // Device configurations for Dây chuyền 1
+    const deviceConfigs = [
+      // 2 devices for "Sau máy ép"
+      {
+        name: 'Sau máy ép 1',
+        deviceId: 'SAU-ME1-DC1-PX1',
+        position: 'Sau máy ép',
+        description: 'Máy đếm gạch tại vị trí sau máy ép 1',
+      },
+      {
+        name: 'Sau máy ép 2',
+        deviceId: 'SAU-ME2-DC1-PX1',
+        position: 'Sau máy ép',
+        description: 'Máy đếm gạch tại vị trí sau máy ép 2',
+      },
+      // 2 devices for "Trước lò nung"
+      {
+        name: 'Trước lò nung 1',
+        deviceId: 'TRUOC-LN1-DC1-PX1',
+        position: 'Trước lò nung',
+        description: 'Máy đếm gạch tại vị trí trước lò nung 1',
+      },
+      {
+        name: 'Trước lò nung 2',
+        deviceId: 'TRUOC-LN2-DC1-PX1',
+        position: 'Trước lò nung',
+        description: 'Máy đếm gạch tại vị trí trước lò nung 2',
+      },
+      // Other positions with 1 device each
+      {
+        name: 'Sau lò nung 1',
+        deviceId: 'SAU-LN-DC1-PX1',
+        position: 'Sau lò nung',
+        description: 'Máy đếm gạch tại vị trí sau lò nung 1',
+      },
+      {
+        name: 'Trước mài 1',
+        deviceId: 'TRUOC-M-DC1-PX1',
+        position: 'Trước mài',
+        description: 'Máy đếm gạch tại vị trí trước mài 1',
+      },
+      {
+        name: 'Sau mài 1',
+        deviceId: 'SAU-M-DC1-PX1',
+        position: 'Sau mài',
+        description: 'Máy đếm gạch tại vị trí sau mài 1',
+      },
+      {
+        name: 'Trước đóng hộp 1',
+        deviceId: 'TRUOC-DH-DC1-PX1',
+        position: 'Trước đóng hộp',
+        description: 'Máy đếm gạch tại vị trí trước đóng hộp 1',
       }
-    }
+    ];
 
-    // 3. Seed measurement_type + device_cluster (gắn với dây chuyền đầu tiên)
-    const measurementTypeId = await seedMeasurementTypes(dataSource);
-    const clusterId = await seedDeviceCluster(dataSource, measurementTypeId, lineIds[0]);
+    for (const deviceConfig of deviceConfigs) {
+      // Find position for this device
+      const position = await dataSource.query(
+        `SELECT id FROM positions 
+         WHERE name = $1 AND "productionLineId" = $2 
+         LIMIT 1`,
+        [deviceConfig.position, line.id]
+      );
 
-    // 4. Seed vị trí + thiết bị cho từng dây chuyền
-    for (const productionLineId of lineIds) {
-      console.log(`➡️  Seeding devices for production line #${productionLineId}...`);
-      let positionIndex = 1;
-
-      for (const deviceData of DEVICES_DATA) {
-        // Kiểm tra device đã tồn tại chưa
-        const existingDevice = await dataSource.query(
-          `SELECT id FROM devices WHERE "deviceId" = $1 LIMIT 1`,
-          [deviceData.deviceId],
-        );
-
-        if (existingDevice && existingDevice.length > 0) {
-          console.log(`   • Device already exists: ${deviceData.deviceId}`);
-          continue;
-        }
-
-        console.log(`   → Processing: ${deviceData.name} (${deviceData.deviceId})`);
-
-        // Kiểm tra position đã tồn tại chưa
-        let position = await dataSource.query(
-          `SELECT id FROM positions WHERE name = $1 AND "productionLineId" = $2 LIMIT 1`,
-          [deviceData.position, productionLineId],
-        );
-
-        let positionId: number;
-
-        if (!position || position.length === 0) {
-          // Tạo position mới
-          const result = await dataSource.query(
-            `INSERT INTO positions (name, description, "productionLineId", index) 
-                         VALUES ($1, $2, $3, $4) RETURNING id`,
-            [
-              deviceData.position,
-              deviceData.description || `Vị trí ${deviceData.position}`,
-              productionLineId,
-              positionIndex++,
-            ],
-          );
-          positionId = result[0].id;
-          console.log(
-            `      ✓ Created position: ${deviceData.position} (ID: ${positionId})`,
-          );
-        } else {
-          positionId = position[0].id;
-        }
-
-        const extraInfo: DeviceExtraInfo = {
-          interval_message_time: 60,
-          telemetry: {
-            topic: `devices/${deviceData.deviceId}/telemetry`,
-            qos: 1,
-          },
-        };
-
-        await dataSource.query(
-          `INSERT INTO devices ("deviceId", name, type, serial_number, status, "positionId", installation_date, "extraInfo", "cluster_id") 
-                     VALUES ($1, $2, $3, $4, 'online', $5, CURRENT_DATE, $6, $7)`,
-          [
-            deviceData.deviceId,
-            deviceData.name,
-            deviceData.type,
-            deviceData.serial_number,
-            positionId,
-            JSON.stringify(extraInfo),
-            clusterId,
-          ],
-        );
-
-        console.log(`      ✓ Created device: ${deviceData.deviceId}`);
+      if (!position || position.length === 0) {
+        console.warn(`   ⚠️  Position "${deviceConfig.position}" not found. Skipping device ${deviceConfig.deviceId}`);
+        continue;
       }
 
-      console.log('');
+      // Check if device already exists
+      const existingDevice = await dataSource.query(
+        `SELECT id FROM devices WHERE "deviceId" = $1 LIMIT 1`,
+        [deviceConfig.deviceId]
+      );
+
+      if (existingDevice && existingDevice.length > 0) {
+        console.log(`   • Device already exists: ${deviceConfig.deviceId}`);
+        continue;
+      }
+
+      // Create the device
+      await dataSource.query(
+        `INSERT INTO devices (
+          "deviceId", name, "positionId", 
+          "cluster_id", status
+        ) VALUES ($1, $2, $3, $4, $5)`,
+        [
+          deviceConfig.deviceId,
+          deviceConfig.name,
+          position[0].id,
+          clusterId,
+          'active',
+        ]
+      );
+
+      console.log(`   ✓ Created device: ${deviceConfig.name} (${deviceConfig.deviceId}) at position: ${deviceConfig.position}`);
     }
 
-    console.log('\n✅ Device seeding completed!\n');
+    console.log('✅ Device seeding for production line 1 completed!');
   } catch (error) {
-    console.error('❌ Error during auto-seeding:', error);
+    console.error('❌ Error seeding devices:', error);
+    throw error;
   }
 }
 
@@ -1084,15 +1022,65 @@ async function seedMeasurements(dataSource: DataSource) {
   console.log(`✓ Inserted ${measurements.length} measurement rows`);
 }
 
+async function seedWorkShopProductionLine(dataSource: DataSource) {
+  console.log('🏭 Seeding workshops and production lines...');
+  
+  // 1. Create or find workshops
+  const workshopName = 'Phân xưởng 1';
+  let workshop = await dataSource.query(
+    `SELECT id, name FROM workshops WHERE name = $1 LIMIT 1`,
+    [workshopName],
+  );
+
+  let workshopId: number;
+  if (!workshop || workshop.length === 0) {
+    console.log(`➕ Creating Workshop ${workshopName}...`);
+    const result = await dataSource.query(
+      `INSERT INTO workshops (name, location) VALUES ($1, $2) RETURNING id, name`,
+      [workshopName, 'Nhà máy chính'],
+    );
+    workshopId = result[0].id;
+    console.log(`✅ Created Workshop: ${result[0].name} (ID: ${workshopId})`);
+  } else {
+    workshopId = workshop[0].id;
+    console.log(`✅ Found Workshop: ${workshop[0].name} (ID: ${workshopId})`);
+  }
+
+  // 2. Create or find production lines
+  const lineNames = ['Dây chuyền 1', 'Dây chuyền 2', 'Dây chuyền 5', 'Dây chuyền 6'];
+  const lineIds: number[] = [];
+
+  for (const lineName of lineNames) {
+    const existing = await dataSource.query(
+      `SELECT id FROM production_lines WHERE name = $1 AND "workshopId" = $2 LIMIT 1`,
+      [lineName, workshopId],
+    );
+
+    if (existing && existing.length > 0) {
+      lineIds.push(existing[0].id);
+      console.log(`   • Found production line: ${lineName} (ID: ${existing[0].id})`);
+    } else {
+      const result = await dataSource.query(
+        `INSERT INTO production_lines (name, "workshopId", status) 
+         VALUES ($1, $2, 'active') RETURNING id`,
+        [lineName, workshopId],
+      );
+      lineIds.push(result[0].id);
+      console.log(`   • Created production line: ${lineName} (ID: ${result[0].id})`);
+    }
+  }
+  
+  return { workshopId, lineIds };
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
 
   // Enable CORS for all origins
   app.enableCors({
-    origin: /(localhost|192\.168\.1\.\d+)(:\d+)?$/,
+    origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
     preflightContinue: false,
@@ -1104,9 +1092,17 @@ async function bootstrap() {
 
   // Auto-seed devices on startup
   const dataSource = app.get(DataSource);
-  await seedDevices(dataSource);
-  await seedMeasurements(dataSource);
+  // await seedMeasurements(dataSource);
   await seedBrickTypesFromTable(dataSource);
+  await seedWorkShopProductionLine(dataSource);
+  await seedProductionStages(dataSource);
+
+  // Seed measurement types and device cluster
+  const measurementTypeId = await seedMeasurementTypes(dataSource);
+  await seedDeviceCluster(dataSource, measurementTypeId);
+  
+  await seedDevices(dataSource);
+
   // Validator Request Body Pipe 
   // app.useGlobalPipes(new ValidationPipe({
   //     whitelist: true,
@@ -1115,5 +1111,214 @@ async function bootstrap() {
   // }));
   await app.listen(process.env.PORT ?? 5555);
 }
+async function seedProductionStages(dataSource: DataSource) {
+  const productionLineRepo = dataSource.getRepository(ProductionLine);
+  const productionStageRepo = dataSource.getRepository(ProductionStage);
+  const positionRepo = dataSource.getRepository(Position);
+
+  // Define production line names
+  const productionLineNames = ['Dây chuyền 1', 'Dây chuyền 2', 'Dây chuyền 5', 'Dây chuyền 6'];
+  
+  // Base stages for most production lines
+  const baseStages = [
+    { 
+      name: 'Ép', 
+      description: 'Công đoạn ép gạch', 
+      order: 1,
+      positions: [
+        { name: 'Sau máy ép', description: 'Vị trí sau máy ép', index: 1 },
+      ]
+    },
+    { 
+      name: 'Nung', 
+      description: 'Công đoạn nung gạch', 
+      order: 2,
+      positions: [
+        { name: 'Trước lò nung', description: 'Trước lò nung', index: 1 },
+        { name: 'Sau lò nung', description: 'Sau lò nung', index: 2 }
+      ]
+    },
+    { 
+      name: 'Mài', 
+      description: 'Công đoạn mài gạch', 
+      order: 3,
+      positions: [
+        { name: 'Trước mài', description: 'Trước mài', index: 1 },
+        { name: 'Sau mài', description: 'Sau mài', index: 2 }
+      ]
+    },
+    { 
+      name: 'Đóng hộp', 
+      description: 'Công đoạn đóng gói thành phẩm', 
+      order: 4,
+      positions: [
+        { name: 'Trước đóng hộp', description: 'Bàn đóng gói số 1', index: 1 },
+      ]
+    },
+  ];
+  
+  // Special stages for production line 5 (Dây chuyền 5)
+  const line5Stages = [
+    { 
+      name: 'Ép', 
+      description: 'Công đoạn ép gạch', 
+      order: 1,
+      positions: [
+        { name: 'Sau máy ép', description: 'Vị trí sau máy ép dây chuyền 5', index: 1 },
+      ]
+    },
+    { 
+      name: 'Nung xương', 
+      description: 'Công đoạn nung xương gạch', 
+      order: 2,
+      positions: [
+        { name: 'Trước lò nung xương', description: 'Trước lò nung xương dây chuyền 5', index: 1 },
+        { name: 'Sau lò nung xương', description: 'Sau lò nung xương dây chuyền 5', index: 2 }
+      ]
+    },
+    { 
+      name: 'Nung men', 
+      description: 'Công đoạn nung men gạch', 
+      order: 3,
+      positions: [
+        { name: 'Trước lò nung men', description: 'Trước lò nung men dây chuyền 5', index: 1 },
+        { name: 'Sau lò nung men', description: 'Sau lò nung men dây chuyền 5', index: 2 }
+      ]
+    },
+    { 
+      name: 'Mài', 
+      description: 'Công đoạn mài gạch', 
+      order: 4,
+      positions: [
+        { name: 'Trước mài', description: 'Trước mài dây chuyền 5', index: 1 },
+        { name: 'Sau mài', description: 'Sau mài dây chuyền 5', index: 2 }
+      ]
+    },
+    { 
+      name: 'Đóng hộp', 
+      description: 'Công đoạn đóng gói thành phẩm', 
+      order: 5,
+      positions: [
+        { name: 'Bàn đóng gói', description: 'Bàn đóng gói số 1 dây chuyền 5', index: 1 },
+      ]
+    },
+  ];
+
+  // Special stages for production line 6 (Dây chuyền 6)
+  const line6Stages = [
+    { 
+      name: 'Ép', 
+      description: 'Công đoạn ép gạch', 
+      order: 1,
+      positions: [
+        { name: 'Sau máy ép', description: 'Vị trí sau máy ép dây chuyền 6', index: 1 },
+      ]
+    },
+    { 
+      name: 'Sấy', 
+      description: 'Công đoạn sấy gạch', 
+      order: 2,
+      positions: [
+        { name: 'Trước lò sấy', description: 'Trước lò sấy dây chuyền 6', index: 1 },
+        { name: 'Sau lò sấy', description: 'Sau lò sấy dây chuyền 6', index: 2 }
+      ]
+    },
+    { 
+      name: 'Nung', 
+      description: 'Công đoạn nung gạch', 
+      order: 3,
+      positions: [
+        { name: 'Trước lò nung', description: 'Trước lò nung dây chuyền 6', index: 1 },
+        { name: 'Sau lò nung', description: 'Sau lò nung dây chuyền 6', index: 2 }
+      ]
+    },
+    { 
+      name: 'Mài', 
+      description: 'Công đoạn mài gạch', 
+      order: 4,
+      positions: [
+        { name: 'Trước mài', description: 'Trước mài dây chuyền 6', index: 1 },
+        { name: 'Sau mài', description: 'Sau mài dây chuyền 6', index: 2 }
+      ]
+    },
+    { 
+      name: 'Đóng hộp', 
+      description: 'Công đoạn đóng gói thành phẩm', 
+      order: 5,
+      positions: [
+        { name: 'Bàn đóng gói', description: 'Bàn đóng gói số 1 dây chuyền 6', index: 1 },
+      ]
+    },
+  ];
+
+  for (const lineName of productionLineNames) {
+    // Find production line by name
+    const productionLine = await productionLineRepo.findOne({
+      where: { name: lineName },
+      relations: ['workshop']
+    });
+    
+    if (!productionLine) {
+      console.warn(`⚠️  Production line "${lineName}" not found, skipping...`);
+      continue;
+    }
+
+    console.log(`\n🔧 Seeding stages for production line: ${lineName} (ID: ${productionLine.id})`);
+
+    // Use different stages based on production line name
+    let stagesToUse = baseStages;
+    if (lineName === 'Dây chuyền 5') {
+      stagesToUse = line5Stages;
+      console.log(`   → Using special stages for Dây chuyền 5`);
+    } else if (lineName === 'Dây chuyền 6') {
+      stagesToUse = line6Stages;
+      console.log(`   → Using special stages for Dây chuyền 6`);
+    }
+    
+    for (const stageData of stagesToUse) {
+      // Check if stage already exists for this line
+      let stage = await productionStageRepo.findOne({
+        where: {
+          name: stageData.name,
+          productionLine: { name: lineName }
+        },
+        relations: ['positions']
+      });
+
+      if (!stage) {
+        // Create the stage first
+        stage = productionStageRepo.create({
+          name: stageData.name,
+          description: stageData.description,
+          order: stageData.order,
+          productionLine,
+          isActive: true
+        });
+        await productionStageRepo.save(stage);
+      }
+
+      // Create positions for this stage if they don't exist
+      for (const positionData of stageData.positions) {
+        const existingPosition = await positionRepo.findOne({
+          where: {
+            name: positionData.name,
+            productionLine: { id: productionLine.id },
+            productionStage: { id: stage.id }
+          }
+        });
+
+        if (!existingPosition) {
+          const position = positionRepo.create({
+            ...positionData,
+            productionLine,
+            productionStage: stage
+          });
+          await positionRepo.save(position);
+        }
+      }
+    }
+  }
+}
+
 bootstrap();
 
