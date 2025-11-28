@@ -41,6 +41,7 @@ import { MeasurementModule } from './measurement/measurement.module';
 import { Measurement } from './measurement/entities/measurement.entity';
 import { DeviceCluster } from './device-clusters/entities/device-cluster.entity';
 import { MeasurementType } from './measurement-types/entities/measurement-types.entity';
+import { ProductionStage } from './production-stages/entities/production-stage.entity';
 import { DeviceClustersModule } from './device-clusters/device-clusters.module';
 import { MeasurementTypesModule } from './measurement-types/measurement-types.module';
 import { InternalApiModule } from './internal-api/internal-api.module';
@@ -50,6 +51,7 @@ import { ActivityLog } from './activity-log/entities/activity-log.entity';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LogInterceptor } from './common/interceptor/log/log.interceptor';
 import { BullModule } from '@nestjs/bullmq';
+import { ProductionStagesModule } from './production-stages/production-stages.module';
 @Module({
     imports: [
         // Config module for environment variables
@@ -87,6 +89,7 @@ import { BullModule } from '@nestjs/bullmq';
                 Measurement,
                 MeasurementType,
                 ActivityLog
+                ProductionStage,
             ],
             synchronize: true, // Set to true to auto-create tables (development/staging only)
             migrationsRun: true // Set to true when initial db
@@ -135,6 +138,7 @@ import { BullModule } from '@nestjs/bullmq';
             provide: APP_INTERCEPTOR,
             useClass: LogInterceptor,
         },
+        ProductionStagesModule,
     ],
 })
 export class AppModule { }
