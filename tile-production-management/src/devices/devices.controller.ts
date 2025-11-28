@@ -18,6 +18,8 @@ import { Permission } from 'src/auth/decorator/permission/permission.decorator';
 import { PERMISSIONS } from 'src/users/permission.constant';
 import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
+import { ActivityEntityType, ActivityAction } from 'src/activity-log/entities/activity-log.enum';
+import { LoggedResponse } from 'src/common/type/log.response';
 
 @Controller('devices')
 @UseGuards(AuthGuard, PermissionGuard)
@@ -29,36 +31,69 @@ export class DevicesController {
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @Permission(PERMISSIONS.DEVICE_CREATE)
-    create(@Body() createDeviceDto: CreateDeviceDto): Promise<Device> {
-        return this.devicesService.create(createDeviceDto);
+    async create(@Body() createDeviceDto: CreateDeviceDto): Promise<LoggedResponse<Device>> {
+        const device = await this.devicesService.create(createDeviceDto);
+        return {
+            data: device,
+            log: {
+                action: 'CREATE_DEVICE' as ActivityAction,
+                actionType: 'CREATE_DEVICE' as ActivityAction,
+                entityType: ActivityEntityType.Device,
+                description: `Tạo thiết bị ${device.name}`,
+                entityId: device.id,
+                entityName: device.name,
+            },
+        };
     }
 
     @Get()
     @Permission(PERMISSIONS.DEVICE_READ)
-    findAll(): Promise<Device[]> {
+    async findAll(): Promise<Device[]> {
         return this.devicesService.findAll();
     }
 
     @Get(':id')
     @Permission(PERMISSIONS.DEVICE_READ)
-    findOne(@Param('id') id: string): Promise<Device> {
+    async findOne(@Param('id') id: string): Promise<Device> {
         return this.devicesService.findOne(+id);
     }
 
     @Patch(':id')
     @Permission(PERMISSIONS.DEVICE_UPDATE)
-    update(
+    async update(
         @Param('id') id: number,
         @Body() updateDeviceDto: UpdateDeviceDto,
-    ): Promise<Device> {
-        return this.devicesService.update(+id, updateDeviceDto);
+    ): Promise<LoggedResponse<Device>> {
+        const device = await this.devicesService.update(+id, updateDeviceDto);
+        return {
+            data: device,
+            log: {
+                action: 'UPDATE_DEVICE' as ActivityAction,
+                actionType: 'UPDATE_DEVICE' as ActivityAction,
+                entityType: ActivityEntityType.Device,
+                description: `Cập nhật thiết bị ${device.name}`,
+                entityId: device.id,
+                entityName: device.name,
+            },
+        };
     }
 
     @Delete(':id')
     @Permission(PERMISSIONS.DEVICE_DELETE)
     @HttpCode(HttpStatus.NO_CONTENT)
-    remove(@Param('id') id: string): Promise<void> {
-        return this.devicesService.remove(+id);
+    async remove(@Param('id') id: string): Promise<LoggedResponse<null>> {
+        await this.devicesService.remove(+id);
+        return {
+            data: null,
+            log: {
+                action: 'DELETE_DEVICE' as ActivityAction,
+                actionType: 'DELETE_DEVICE' as ActivityAction,
+                entityType: ActivityEntityType.Device,
+                description: `Xoá thiết bị id=${id}`,
+                entityId: +id,
+                entityName: undefined,
+            },
+        };
     }
 
     /**
@@ -139,7 +174,18 @@ export class DevicesController {
 
     @Post(':deviceId/checkStatus')
     @Permission(PERMISSIONS.DEVICE_UPDATE)
-    async checkDeviceOnline(@Param('deviceId') id: number) {
-        return await this.devicesService.checkDeviceOnline(id)
+    async checkDeviceOnline(@Param('deviceId') id: number): Promise<LoggedResponse<any>> {
+        const result = await this.devicesService.checkDeviceOnline(id);
+        return {
+            data: result,
+            log: {
+                action: 'TEST_DEVICE_CONNECTION' as ActivityAction,
+                actionType: 'TEST_DEVICE_CONNECTION' as ActivityAction,
+                entityType: ActivityEntityType.Device,
+                description: `Kiểm tra trạng thái online của thiết bị id=${id}`,
+                entityId: +id,
+                entityName: undefined,
+            },
+        };
     }
 }

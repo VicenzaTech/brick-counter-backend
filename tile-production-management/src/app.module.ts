@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Workshop } from './workshops/entities/workshop.entity';
@@ -44,6 +44,12 @@ import { MeasurementType } from './measurement-types/entities/measurement-types.
 import { DeviceClustersModule } from './device-clusters/device-clusters.module';
 import { MeasurementTypesModule } from './measurement-types/measurement-types.module';
 import { InternalApiModule } from './internal-api/internal-api.module';
+import { ActivityLogModule } from './activity-log/activity-log.module';
+import { ActivityLogQueue } from './activity-log.queue/activity-log.queue';
+import { ActivityLog } from './activity-log/entities/activity-log.entity';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { LogInterceptor } from './common/interceptor/log/log.interceptor';
+import { BullModule } from '@nestjs/bullmq';
 @Module({
     imports: [
         // Config module for environment variables
@@ -80,9 +86,21 @@ import { InternalApiModule } from './internal-api/internal-api.module';
                 DeviceCluster,
                 Measurement,
                 MeasurementType,
+                ActivityLog
             ],
-            synchronize: false, // Set to true to auto-create tables (development/staging only)
+            synchronize: true, // Set to true to auto-create tables (development/staging only)
             migrationsRun: true // Set to true when initial db
+        }),
+
+        BullModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+                connection: {
+                    host: config.get<string>('REDIS_HOST', 'localhost'),
+                    port: config.get<number>('REDIS_PORT', 6379),
+                    password: config.get<string>('REDIS_PASSWORD') || undefined,
+                },
+            }),
         }),
         // MQTT and WebSocket modules
         MqttModule,
@@ -109,7 +127,14 @@ import { InternalApiModule } from './internal-api/internal-api.module';
         SimpleUniversalWebSocketModule,
         SimpleUniversalMqttModule,
         InternalApiModule,
+        ActivityLogModule,
+        ActivityLogQueue,
     ],
-    providers: [],
+    providers: [
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: LogInterceptor,
+        },
+    ],
 })
 export class AppModule { }

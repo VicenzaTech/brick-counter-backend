@@ -7,6 +7,8 @@ import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import ms from 'ms'
 import { COOKIE_KEY } from './auth.constant';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
+import { LoggedResponse } from 'src/common/type/log.response';
 
 @Controller('auth')
 export class AuthController {
@@ -16,10 +18,16 @@ export class AuthController {
     ) { }
 
     @Post('/login')
-    async login(@Body() loginDto: LoginDTO, @Res({ passthrough: true }) res: Response) {
+    async login(
+        @Body() loginDto: LoginDTO,
+        @Res({ passthrough: true }) res: Response,
+        @Req() req,
+    ): Promise<LoggedResponse<any>> {
         const expired = this.configService.get('JWT_REFRESH_EXPIRES')
         const expired_ms = Number((ms(expired)))
         const loginData = await this.authService.login(loginDto)
+        // set user on request so interceptor can capture userId
+        req.user = loginData.user
         res.cookie(COOKIE_KEY.REFRESH_TOKEN_KEY, loginData.tokens.refreshtoken, {
             httpOnly: true,
             secure: true,
@@ -30,15 +38,26 @@ export class AuthController {
             secure: true,
             maxAge: expired_ms
         })
-        return loginData
+        return {
+            data: loginData,
+            log: {
+                action: 'LOGIN_SUCCESS' as ActivityAction,
+                actionType: 'LOGIN_SUCCESS' as ActivityAction,
+                entityType: ActivityEntityType.User,
+                description: `Người dùng ${loginData.user.username} đã đăng nhập`,
+                entityId: undefined,
+                entityName: loginData.user.username,
+            },
+        }
     }
 
     @Post('/logout')
     @UseGuards(SessionGuard)
-    async logout(@Req() req, @Res({ passthrough: true }) res: Response) {
+    async logout(@Req() req, @Res({ passthrough: true }) res: Response): Promise<LoggedResponse<any>> {
         // 1. logout if received user request
         // 2. force logout if expired token
         const sessionId = req.sessionId
+        const user = req.user
         const logoutData = await this.authService.logout(sessionId)
         res.clearCookie(COOKIE_KEY.REFRESH_TOKEN_KEY, {
             httpOnly: true,
@@ -46,12 +65,22 @@ export class AuthController {
         res.clearCookie(COOKIE_KEY.SESSION_ID_KEY, {
             httpOnly: true,
         })
-        return logoutData
+        return {
+            data: logoutData,
+            log: {
+                action: 'LOGOUT' as ActivityAction,
+                actionType: 'LOGOUT' as ActivityAction,
+                entityType: ActivityEntityType.User,
+                description: `Người dùng đã đăng xuất`,
+                entityId: undefined,
+                entityName: user?.username,
+            },  
+        }
     }
 
     @Post('/refresh')
     @UseGuards(SessionGuard)
-    async refresh(@Req() req, @Res({ passthrough: true }) res: Response) {
+    async refresh(@Req() req, @Res({ passthrough: true }) res: Response): Promise<LoggedResponse<any>> {
         const user = req.user
         const sessionId = req.sessionId
         const refreshToken = req.refreshToken
@@ -61,14 +90,20 @@ export class AuthController {
         const { tokens } = refreshData
         const expired_ms = Number((ms(expired)))
         res.cookie[COOKIE_KEY.REFRESH_TOKEN_KEY] = tokens.refreshtoken
-       
-        return refreshData
+
+        return {
+            data: refreshData,
+        }
     }
 
     @Get('/me')
     @UseGuards(AuthGuard)
-    async me(@Req() req) {
+    async me(@Req() req): Promise<LoggedResponse<any>> {
         const user = req.user
-        return await this.authService.me(user)
+        const meData = await this.authService.me(user)
+
+        return {
+            data: meData,
+        }
     }
 }

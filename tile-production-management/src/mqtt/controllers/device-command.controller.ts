@@ -1,5 +1,7 @@
 import { Controller, Post, Param, Body, Logger, ParseIntPipe } from '@nestjs/common';
 import { DeviceCommandService, CommandResponse } from '../services/device-command.service';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
+import { LoggedResponse } from 'src/common/type/log.response';
 
 @Controller('mqtt/device-command')
 export class DeviceCommandController {
@@ -14,9 +16,19 @@ export class DeviceCommandController {
   @Post('reset-counter/:clusterId')
   async resetCounterCluster(
     @Param('clusterId', ParseIntPipe) clusterId: number,
-  ): Promise<CommandResponse> {
-    this.logger.log(`REST API: Reset production line ${clusterId}`);
-    return this.deviceCommandService.resetCounterCluster(clusterId);
+  ): Promise<LoggedResponse<CommandResponse>> {
+    this.logger.log(`REST API: Reset cluster ${clusterId}`);
+    const result = await this.deviceCommandService.resetCounterCluster(clusterId);
+    return {
+      data: result,
+      log: {
+        action: 'RESET_CLUSTER_COUNTER' as ActivityAction,
+        actionType: 'RESET_CLUSTER_COUNTER' as ActivityAction,
+        entityType: ActivityEntityType.DeviceCluster,
+        description: `Reset bộ đếm cho cụm thiết bị ${clusterId}`,
+        entityId: clusterId,
+      },
+    };
   }
 
   /**
@@ -26,9 +38,19 @@ export class DeviceCommandController {
   @Post('reset-line/:lineId')
   async resetLine(
     @Param('lineId', ParseIntPipe) lineId: number,
-  ): Promise<CommandResponse> {
+  ): Promise<LoggedResponse<CommandResponse>> {
     this.logger.log(`REST API: Reset production line ${lineId}`);
-    return this.deviceCommandService.resetProductionLine(lineId);
+    const result = await this.deviceCommandService.resetProductionLine(lineId);
+    return {
+      data: result,
+      log: {
+        action: 'RESET_LINE_COUNTER' as ActivityAction,
+        actionType: 'RESET_LINE_COUNTER' as ActivityAction,
+        entityType: ActivityEntityType.ProductionLine,
+        description: `Reset bộ đếm trên dây chuyền ${lineId}`,
+        entityId: lineId,
+      },
+    };
   }
 
   /**
@@ -38,9 +60,19 @@ export class DeviceCommandController {
   @Post('reset-device/:deviceId')
   async resetDevice(
     @Param('deviceId') deviceId: string,
-  ): Promise<CommandResponse> {
+  ): Promise<LoggedResponse<CommandResponse>> {
     this.logger.log(`REST API: Reset device ${deviceId}`);
-    return this.deviceCommandService.resetDevice(deviceId);
+    const result = await this.deviceCommandService.resetDevice(deviceId);
+    return {
+      data: result,
+      log: {
+        action: 'RESET_DEVICE_COUNTER' as ActivityAction,
+        actionType: 'RESET_DEVICE_COUNTER' as ActivityAction,
+        entityType: ActivityEntityType.Device,
+        description: `Reset bộ đếm của thiết bị ${deviceId}`,
+        entityName: deviceId,
+      },
+    };
   }
 
   /**
@@ -52,9 +84,20 @@ export class DeviceCommandController {
   async setDevice(
     @Param('deviceId') deviceId: string,
     @Body('value', ParseIntPipe) value: number,
-  ): Promise<CommandResponse> {
+  ): Promise<LoggedResponse<CommandResponse>> {
     this.logger.log(`REST API: Set device ${deviceId} to value ${value}`);
-    return this.deviceCommandService.setDeviceValue(deviceId, value);
+    const result = await this.deviceCommandService.setDeviceValue(deviceId, value);
+    return {
+      data: result,
+      log: {
+        action: 'SET_DEVICE_COUNTER' as ActivityAction,
+        actionType: 'SET_DEVICE_COUNTER' as ActivityAction,
+        entityType: ActivityEntityType.Device,
+        description: `Gán lại bộ đếm của thiết bị ${deviceId} về giá trị ${value}`,
+        entityName: deviceId,
+        meta: { value },
+      },
+    };
   }
 
   /**
@@ -64,9 +107,19 @@ export class DeviceCommandController {
   @Post('emergency-stop/:lineId')
   async emergencyStop(
     @Param('lineId', ParseIntPipe) lineId: number,
-  ): Promise<CommandResponse> {
+  ): Promise<LoggedResponse<CommandResponse>> {
     this.logger.warn(`REST API: Emergency stop for line ${lineId}`);
-    return this.deviceCommandService.emergencyStopLine(lineId);
+    const result = await this.deviceCommandService.emergencyStopLine(lineId);
+    return {
+      data: result,
+      log: {
+        action: 'EMERGENCY_STOP_LINE' as ActivityAction,
+        actionType: 'EMERGENCY_STOP_LINE' as ActivityAction,
+        entityType: ActivityEntityType.ProductionLine,
+        description: `Dừng khẩn cấp dây chuyền ${lineId}`,
+        entityId: lineId,
+      },
+    };
   }
 
   /**
@@ -78,9 +131,20 @@ export class DeviceCommandController {
   async configDevice(
     @Param('deviceId') deviceId: string,
     @Body('interval', ParseIntPipe) interval: number,
-  ): Promise<CommandResponse> {
+  ): Promise<LoggedResponse<CommandResponse>> {
     this.logger.log(`REST API: Configure device ${deviceId}, interval: ${interval}s`);
-    return this.deviceCommandService.configureDevice(deviceId, interval);
+    const result = await this.deviceCommandService.configureDevice(deviceId, interval);
+    return {
+      data: result,
+      log: {
+        action: 'CONFIG_DEVICE' as ActivityAction,
+        actionType: 'CONFIG_DEVICE' as ActivityAction,
+        entityType: ActivityEntityType.Device,
+        description: `Cấu hình thiết bị ${deviceId}, chu kỳ gửi dữ liệu ${interval}s`,
+        entityName: deviceId,
+        meta: { interval },
+      },
+    };
   }
 
   /**
@@ -92,8 +156,19 @@ export class DeviceCommandController {
   async configLine(
     @Param('lineId', ParseIntPipe) lineId: number,
     @Body('interval', ParseIntPipe) interval: number,
-  ): Promise<CommandResponse> {
+  ): Promise<LoggedResponse<CommandResponse>> {
     this.logger.log(`REST API: Configure production line ${lineId}, interval: ${interval}s`);
-    return this.deviceCommandService.configureProductionLine(lineId, interval);
+    const result = await this.deviceCommandService.configureProductionLine(lineId, interval);
+    return {
+      data: result,
+      log: {
+        action: 'CONFIG_LINE' as ActivityAction,
+        actionType: 'CONFIG_LINE' as ActivityAction,
+        entityType: ActivityEntityType.ProductionLine,
+        description: `Cấu hình dây chuyền ${lineId}, chu kỳ gửi dữ liệu ${interval}s`,
+        entityId: lineId,
+        meta: { interval },
+      },
+    };
   }
 }
