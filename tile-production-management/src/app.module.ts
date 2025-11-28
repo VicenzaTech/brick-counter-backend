@@ -88,10 +88,10 @@ import { ProductionStagesModule } from './production-stages/production-stages.mo
                 DeviceCluster,
                 Measurement,
                 MeasurementType,
-                ActivityLog
+                ActivityLog,
                 ProductionStage,
             ],
-            synchronize: true, // Set to true to auto-create tables (development/staging only)
+            synchronize: false, // Set to true to auto-create tables (development/staging only)
             migrationsRun: true // Set to true when initial db
         }),
 
@@ -132,13 +132,13 @@ import { ProductionStagesModule } from './production-stages/production-stages.mo
         InternalApiModule,
         ActivityLogModule,
         ActivityLogQueue,
+        ProductionStagesModule,
     ],
     providers: [
         {
             provide: APP_INTERCEPTOR,
             useClass: LogInterceptor,
         },
-        ProductionStagesModule,
     ],
 })
 export class AppModule { }
