@@ -11,6 +11,8 @@ import {
   QuotaComparisonResultDto,
 } from './dtos/quota-target.dto';
 import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
+import { LoggedResponse } from 'src/common/type/log.response';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 
 @Injectable()
 @UseGuards(AuthGuard)
@@ -90,8 +92,9 @@ export class QuotaTargetsService {
     });
   }
 
-  async update(id: number, updateDto: UpdateQuotaTargetDto): Promise<QuotaTarget> {
+  async update(id: number, updateDto: UpdateQuotaTargetDto): Promise<LoggedResponse<QuotaTarget>> {
     const quota = await this.findOne(id);
+    const before = { ...quota };
 
     if (updateDto.brickTypeId) {
       const brickType = await this.brickTypeRepository.findOne({
@@ -104,7 +107,23 @@ export class QuotaTargetsService {
     }
 
     Object.assign(quota, updateDto);
-    return this.quotaRepository.save(quota);
+    const updated = await this.quotaRepository.save(quota);
+
+    return {
+      data: updated,
+      log: {
+        action: 'UPDATE_QUOTA_TARGET' as ActivityAction,
+        actionType: 'UPDATE_QUOTA_TARGET' as ActivityAction,
+        entityType: ActivityEntityType.QuotaTarget,
+        description: `Cập nhật chỉ tiêu sản lượng id=${id}`,
+        entityId: updated.id,
+        entityName: updated.name,
+        meta: {
+          before,
+          after: updated,
+        },
+      },
+    };
   }
 
   async remove(id: number): Promise<void> {

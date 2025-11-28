@@ -11,6 +11,8 @@ import {
   MetricsSummaryDto,
   SankeyDataDto,
 } from './dtos/production-metric.dto';
+import { LoggedResponse } from 'src/common/type/log.response';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 
 @Injectable()
 export class ProductionMetricsService {
@@ -182,15 +184,32 @@ export class ProductionMetricsService {
     return metric;
   }
 
-  async update(id: number, updateDto: UpdateProductionMetricDto): Promise<ProductionMetric> {
+  async update(id: number, updateDto: UpdateProductionMetricDto): Promise<LoggedResponse<ProductionMetric>> {
     const metric = await this.findOne(id);
+    const before = { ...metric };
 
     // Recalculate metrics with updated data
     const calculatedMetrics = this.calculateMetrics({ ...metric, ...updateDto });
 
     Object.assign(metric, updateDto, calculatedMetrics);
 
-    return this.metricsRepository.save(metric);
+    const updated = await this.metricsRepository.save(metric);
+
+    return {
+      data: updated,
+      log: {
+        action: 'UPDATE_PRODUCTION_METRIC' as ActivityAction,
+        actionType: 'UPDATE_PRODUCTION_METRIC' as ActivityAction,
+        entityType: ActivityEntityType.ProductionMetric,
+        description: `Cập nhật cấu hình chỉ số sản xuất id=${id}`,
+        entityId: updated.id,
+        entityName: undefined,
+        meta: {
+          before,
+          after: updated,
+        },
+      },
+    };
   }
 
   async remove(id: number): Promise<void> {

@@ -20,6 +20,8 @@ import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 import { Permission } from 'src/auth/decorator/permission/permission.decorator';
 import { PERMISSIONS } from 'src/users/permission.constant';
+import { ActivityEntityType, ActivityAction } from 'src/activity-log/entities/activity-log.enum';
+import { LoggedResponse } from 'src/common/type/log.response';
 
 @Controller('quota-targets')
 @UseGuards(AuthGuard, PermissionGuard)
@@ -28,51 +30,74 @@ export class QuotaTargetsController {
 
     @Post()
     @Permission(PERMISSIONS.QUOTA_TARGET_CREATE)
-    create(@Body() createDto: CreateQuotaTargetDto) {
-        return this.quotaService.create(createDto);
+    async create(@Body() createDto: CreateQuotaTargetDto): Promise<LoggedResponse<any>> {
+        const quota = await this.quotaService.create(createDto);
+        return {
+            data: quota,
+            log: {
+                action: 'CREATE_QUOTA_TARGET' as ActivityAction,
+                actionType: 'CREATE_QUOTA_TARGET' as ActivityAction,
+                entityType: ActivityEntityType.QuotaTarget,
+                description: `Tạo chỉ tiêu sản lượng`,
+                entityId: (quota as any)?.id,
+                entityName: undefined,
+            },
+        };
     }
 
     @Get()
     @Permission(PERMISSIONS.QUOTA_TARGET_READ)
-    findAll() {
+    async findAll() {
         return this.quotaService.findAll();
     }
 
     @Get('active')
-    findActive() {
+    async findActive() {
         return this.quotaService.findActive();
     }
 
     @Get('brick-type/:brickTypeId')
     @Permission(PERMISSIONS.BRICK_TYPE_READ)
-    findByBrickType(@Param('brickTypeId', ParseIntPipe) brickTypeId: number) {
+    async findByBrickType(@Param('brickTypeId', ParseIntPipe) brickTypeId: number) {
         return this.quotaService.findByBrickType(brickTypeId);
     }
 
     @Post('compare')
     @Permission(PERMISSIONS.QUOTA_TARGET_READ)
-    compareWithQuota(@Body() comparisonDto: QuotaComparisonDto) {
+    async compareWithQuota(@Body() comparisonDto: QuotaComparisonDto) {
         return this.quotaService.compareWithQuota(comparisonDto);
     }
 
     @Get(':id')
     @Permission(PERMISSIONS.QUOTA_TARGET_READ)
-    findOne(@Param('id', ParseIntPipe) id: number) {
+    async findOne(@Param('id', ParseIntPipe) id: number) {
         return this.quotaService.findOne(id);
     }
 
     @Put(':id')
     @Permission(PERMISSIONS.QUOTA_TARGET_UPDATE)
-    update(
+    async update(
         @Param('id', ParseIntPipe) id: number,
         @Body() updateDto: UpdateQuotaTargetDto,
-    ) {
+    ): Promise<LoggedResponse<any>> {
         return this.quotaService.update(id, updateDto);
     }
 
     @Delete(':id')
     @Permission(PERMISSIONS.QUOTA_TARGET_DELETE)
-    remove(@Param('id', ParseIntPipe) id: number) {
-        return this.quotaService.remove(id);
+    async remove(@Param('id', ParseIntPipe) id: number): Promise<LoggedResponse<null>> {
+        await this.quotaService.remove(id);
+        return {
+            data: null,
+            log: {
+                action: 'DELETE_QUOTA_TARGET' as ActivityAction,
+                actionType: 'DELETE_QUOTA_TARGET' as ActivityAction,
+                entityType: ActivityEntityType.QuotaTarget,
+                description: `Xóa chỉ tiêu sản lượng id=${id}`,
+                entityId: id,
+                entityName: undefined,
+            },
+        };
     }
 }
+

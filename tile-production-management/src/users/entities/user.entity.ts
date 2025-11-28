@@ -6,8 +6,10 @@ import {
     JoinTable,
     CreateDateColumn,
     UpdateDateColumn,
+    OneToMany,
 } from 'typeorm'
 import { Role } from './role.entity'
+import { ActivityLog } from 'src/activity-log/entities/activity-log.entity'
 
 @Entity('users')
 export class User {
@@ -47,4 +49,7 @@ export class User {
         },
     })
     roles: Role[]
+
+    @OneToMany(() => ActivityLog, (log) => log.user)
+    activityLogs: ActivityLog[];
 }

@@ -18,6 +18,8 @@ import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 import { Permission } from 'src/auth/decorator/permission/permission.decorator';
 import { PERMISSIONS } from 'src/users/permission.constant';
+import { ActivityEntityType, ActivityAction } from 'src/activity-log/entities/activity-log.enum';
+import { LoggedResponse } from 'src/common/type/log.response';
 
 @Controller('production-lines')
 @UseGuards(AuthGuard, PermissionGuard)
@@ -27,35 +29,58 @@ export class ProductionLinesController {
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @Permission(PERMISSIONS.PRODUCTION_LINE_UPDATE)
-    create(@Body() createProductionLineDto: CreateProductionLineDto): Promise<ProductionLine> {
-        return this.productionLinesService.create(createProductionLineDto);
+    async create(@Body() createProductionLineDto: CreateProductionLineDto): Promise<LoggedResponse<ProductionLine>> {
+        const line = await this.productionLinesService.create(createProductionLineDto);
+        return {
+            data: line,
+            log: {
+                action: 'CREATE_PRODUCTION_LINE' as ActivityAction,
+                actionType: 'CREATE_PRODUCTION_LINE' as ActivityAction,
+                entityType: ActivityEntityType.ProductionLine,
+                description: `Tạo dây chuyền sản xuất ${line.name}`,
+                entityId: line.id,
+                entityName: line.name,
+            },
+        };
     }
 
     @Get()
     @Permission(PERMISSIONS.PRODUCTION_LINE_READ)
-    findAll(): Promise<ProductionLine[]> {
+    async findAll(): Promise<ProductionLine[]> {
         return this.productionLinesService.findAll();
     }
 
     @Get(':id')
     @Permission(PERMISSIONS.PRODUCTION_LINE_READ)
-    findOne(@Param('id') id: string): Promise<ProductionLine> {
+    async findOne(@Param('id') id: string): Promise<ProductionLine> {
         return this.productionLinesService.findOne(+id);
     }
 
     @Patch(':id')
     @Permission(PERMISSIONS.PRODUCTION_LINE_UPDATE)
-    update(
+    async update(
         @Param('id') id: string,
         @Body() updateProductionLineDto: UpdateProductionLineDto,
-    ): Promise<Partial<ProductionLine>> {
+    ): Promise<LoggedResponse<Partial<ProductionLine>>> {
         return this.productionLinesService.update(+id, updateProductionLineDto);
     }
 
     @Delete(':id')
     @Permission(PERMISSIONS.PRODUCTION_LINE_DELETE)
     @HttpCode(HttpStatus.NO_CONTENT)
-    remove(@Param('id') id: string): Promise<void> {
-        return this.productionLinesService.remove(+id);
+    async remove(@Param('id') id: string): Promise<LoggedResponse<null>> {
+        await this.productionLinesService.remove(+id);
+        return {
+            data: null,
+            log: {
+                action: 'DELETE_PRODUCTION_LINE' as ActivityAction,
+                actionType: 'DELETE_PRODUCTION_LINE' as ActivityAction,
+                entityType: ActivityEntityType.ProductionLine,
+                description: `Xóa dây chuyền sản xuất id=${id}`,
+                entityId: +id,
+                entityName: undefined,
+            },
+        };
     }
 }
+

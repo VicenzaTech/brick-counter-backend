@@ -7,6 +7,8 @@ import { CreateProductionLineDto } from './dtos/create-production-line.dto';
 import { UpdateProductionLineDto } from './dtos/update-production-line.dto';
 import { REDIS_PROVIDER } from 'src/common/redis/redis.constant';
 import Redis from 'ioredis';
+import { LoggedResponse } from 'src/common/type/log.response';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 
 @Injectable()
 export class ProductionLinesService {
@@ -76,17 +78,32 @@ export class ProductionLinesService {
     async update(
         id: number,
         updateProductionLineDto: UpdateProductionLineDto,
-    ): Promise<Partial<ProductionLine>> {
+    ): Promise<LoggedResponse<Partial<ProductionLine>>> {
         const productionLine = await this.findOne(id);
+        const before = { ...productionLine };
         Object.assign(productionLine, updateProductionLineDto);
         const updated = await this.productionLineRepository.save(productionLine);
-        if (!updated) throw new ForbiddenException()
+        if (!updated) throw new ForbiddenException();
         const payload = {
             id: updated.id,
             name: updated.name,
-            description: updated.description
-        }
-        return payload
+            description: updated.description,
+        };
+        return {
+            data: payload,
+            log: {
+                action: 'UPDATE_PRODUCTION_LINE' as ActivityAction,
+                actionType: 'UPDATE_PRODUCTION_LINE' as ActivityAction,
+                entityType: ActivityEntityType.ProductionLine,
+                description: `Cập nhật dây chuyền sản xuất id=${id}`,
+                entityId: updated.id,
+                entityName: updated.name,
+                meta: {
+                    before,
+                    after: payload,
+                },
+            },
+        };
     }
 
     async remove(id: number): Promise<void> {

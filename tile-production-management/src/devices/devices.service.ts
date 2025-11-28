@@ -7,6 +7,8 @@ import { Position } from '../positions/entities/position.entity';
 import { CreateDeviceDto } from './dtos/create-device.dto';
 import { UpdateDeviceDto } from './dtos/update-device.dto';
 import type { DeviceExtraInfo } from 'src/common/mqtt/device-extra-info';
+import { LoggedResponse } from 'src/common/type/log.response';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 
 export const get_device_topic = (deviceId: string): string =>
     `devices/${deviceId}/telemetry`;
@@ -99,8 +101,9 @@ export class DevicesService {
     async update(
         id: number,
         updateDeviceDto: UpdateDeviceDto,
-    ): Promise<Device> {
+    ): Promise<LoggedResponse<Device>> {
         const device = await this.findOne(id);
+        const before = { ...device };
 
         // If positionId is being updated, validate it exists and update relation
         if (updateDeviceDto.positionId) {
@@ -184,7 +187,23 @@ export class DevicesService {
         if (updateDeviceDto.installation_date !== undefined) {
             device.installation_date = updateDeviceDto.installation_date;
         }
-        return await this.deviceRepository.save(device);
+        const updated = await this.deviceRepository.save(device);
+
+        return {
+            data: updated,
+            log: {
+                action: 'UPDATE_DEVICE' as ActivityAction,
+                actionType: 'UPDATE_DEVICE' as ActivityAction,
+                entityType: ActivityEntityType.Device,
+                description: `Cập nhật thiết bị ${updated.name}`,
+                entityId: updated.id,
+                entityName: updated.name,
+                meta: {
+                    before,
+                    after: updated,
+                },
+            },
+        };
     }
 
     async remove(id: number): Promise<void> {

@@ -5,6 +5,8 @@ import { Position } from './entities/position.entity';
 import { CreatePositionDto } from './dtos/create-position.dto';
 import { UpdatePositionDto } from './dtos/update-position.dto';
 import { UpdatePossitionIndexDto } from './dtos/update-position-index.dto';
+import { LoggedResponse } from 'src/common/type/log.response';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 
 @Injectable()
 export class PositionsService {
@@ -51,13 +53,14 @@ export class PositionsService {
         return position;
     }
 
-    async update(id: number, dto: UpdatePositionDto): Promise<Position> {
+    async update(id: number, dto: UpdatePositionDto): Promise<LoggedResponse<Position>> {
         const position = await this.positionRepository.findOne({
             where: { id },
             relations: ['productionLine'],
         });
 
         if (!position) throw new NotFoundException('Position not found');
+        const before = { ...position };
 
         const oldLineId = position.productionLine.id;
         const oldIndex = position.index;
@@ -107,17 +110,34 @@ export class PositionsService {
             index: newIndex,
         });
 
-        return this.positionRepository.save(position);
+        const updated = await this.positionRepository.save(position);
+
+        return {
+            data: updated,
+            log: {
+                action: 'UPDATE_POSITION' as ActivityAction,
+                actionType: 'UPDATE_POSITION' as ActivityAction,
+                entityType: ActivityEntityType.Position,
+                description: `Cập nhật vị trí ${updated.name}`,
+                entityId: updated.id,
+                entityName: updated.name,
+                meta: {
+                    before,
+                    after: updated,
+                },
+            },
+        };
     }
 
 
-    async updateIndex(id: number, dto: UpdatePossitionIndexDto) {
+    async updateIndex(id: number, dto: UpdatePossitionIndexDto): Promise<LoggedResponse<Position>> {
         const position = await this.positionRepository.findOne({
             where: { id },
             relations: ['productionLine'],
         });
 
         if (!position) throw new NotFoundException('Position not found');
+        const before = { ...position };
 
         const oldLineId = position.productionLine.id;
         const oldIndex = position.index;
@@ -157,14 +177,30 @@ export class PositionsService {
 
         Object.assign(position, dto, { index: newIndex });
 
-        return this.positionRepository.save(position);
+        const updated = await this.positionRepository.save(position);
+
+        return {
+            data: updated,
+            log: {
+                action: 'UPDATE_POSITION_INDEX' as ActivityAction,
+                actionType: 'UPDATE_POSITION_INDEX' as ActivityAction,
+                entityType: ActivityEntityType.Position,
+                description: `Cập nhật thứ tự hiển thị cho vị trí ${updated.name}`,
+                entityId: updated.id,
+                entityName: updated.name,
+                meta: {
+                    before,
+                    after: updated,
+                },
+            },
+        };
     }
 
 
     async remove(id: number): Promise<void> {
         const position = await this.findOne(id);
-        const deviceCount = position.devices.length
-        if (deviceCount > 0) throw new BadRequestException(`There are ${deviceCount} in this position`)
+        const deviceCount = position.devices.length;
+        if (deviceCount > 0) throw new BadRequestException(`There are ${deviceCount} in this position`);
 
         await this.positionRepository.remove(position);
     }
@@ -181,3 +217,4 @@ export class PositionsService {
         return max > 0 ? max : 1;
     }
 }
+

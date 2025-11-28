@@ -5,6 +5,8 @@ import { BrickType } from './entities/brick-type.entity';
 import { ProductionLine } from '../production-lines/entities/production-line.entity';
 import { CreateBrickTypeDto } from './dtos/create-brick-type.dto';
 import { UpdateBrickTypeDto } from './dtos/update-brick-type.dto';
+import { LoggedResponse } from 'src/common/type/log.response';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 
 @Injectable()
 export class BrickTypesService {
@@ -39,10 +41,28 @@ export class BrickTypesService {
   async update(
     id: number,
     updateBrickTypeDto: UpdateBrickTypeDto,
-  ): Promise<BrickType> {
+  ): Promise<LoggedResponse<BrickType>> {
     const brickType = await this.findOne(id);
+    const before = { ...brickType };
+
     Object.assign(brickType, updateBrickTypeDto);
-    return await this.brickTypeRepository.save(brickType);
+    const updated = await this.brickTypeRepository.save(brickType);
+
+    return {
+      data: updated,
+      log: {
+        action: 'UPDATE_BRICK_TYPE' as ActivityAction,
+        actionType: 'UPDATE_BRICK_TYPE' as ActivityAction,
+        entityType: ActivityEntityType.BrickType,
+        description: `Cập nhật loại gạch ${updated.name}`,
+        entityId: updated.id,
+        entityName: updated.name,
+        meta: {
+          before,
+          after: updated,
+        },
+      },
+    };
   }
 
   async remove(id: number): Promise<void> {

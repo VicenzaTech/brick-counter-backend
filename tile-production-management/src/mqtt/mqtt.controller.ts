@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Logger } from '@nestjs/common';
-import { MqttService } from './mqtt.service';
 import { SimpleUniversalMqttService } from './services/simple-universal-mqtt.service';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
+import type { LoggedResponse } from 'src/common/type/log.response';
 
 @Controller('mqtt')
 export class MqttController {
@@ -25,7 +26,7 @@ export class MqttController {
    * Send test message to MQTT broker
    */
   @Post('test')
-  sendTestMessage(@Body() body: { deviceId?: string; topic?: string; data?: any }) {
+  sendTestMessage(@Body() body: { deviceId?: string; topic?: string; data?: any }): LoggedResponse<any> {
     const deviceId = body.deviceId || 'test_device_001';
     const topic = body.topic || `devices/${deviceId}/telemetry`;
     const data = body.data || {
@@ -46,10 +47,19 @@ export class MqttController {
     const success = this.simpleUniversalMqttService.publishCommand(`TRUOC-MM-01`, deviceId, data);
 
     return {
-      success,
-      topic,
-      data,
-      timestamp: new Date().toISOString(),
+      data: {
+        success,
+        topic,
+        data,
+        timestamp: new Date().toISOString(),
+      },
+      log: {
+        action: 'TEST_MQTT_PUBLISH_ONCE' as ActivityAction,
+        actionType: 'TEST_MQTT_PUBLISH_ONCE' as ActivityAction,
+        entityType: ActivityEntityType.Device,
+        description: `Gửi bản tin MQTT test tới thiết bị ${deviceId}`,
+        meta: { topic },
+      },
     };
   }
 
@@ -59,7 +69,7 @@ export class MqttController {
   @Post('test/continuous')
   async sendContinuousTestMessages(
     @Body() body: { deviceId?: string; count?: number; interval?: number }
-  ) {
+  ): Promise<LoggedResponse<any>> {
     const deviceId = body.deviceId || 'test_device_001';
     const count = body.count || 10;
     const interval = body.interval || 1000; // ms
@@ -91,10 +101,18 @@ export class MqttController {
     }
 
     return {
-      deviceId,
-      totalSent: count,
-      results,
-      timestamp: new Date().toISOString(),
+      data: {
+        deviceId,
+        totalSent: count,
+        results,
+        timestamp: new Date().toISOString(),
+      },
+      log: {
+        action: 'TEST_MQTT_PUBLISH_CONTINUOUS' as ActivityAction,
+        actionType: 'TEST_MQTT_PUBLISH_CONTINUOUS' as ActivityAction,
+        entityType: ActivityEntityType.Device,
+        description: `Gửi ${count} bản tin MQTT test liên tiếp cho thiết bị ${deviceId}`,
+      },
     };
   }
 }

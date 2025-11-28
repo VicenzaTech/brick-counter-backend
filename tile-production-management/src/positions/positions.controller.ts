@@ -19,6 +19,8 @@ import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 import { Permission } from 'src/auth/decorator/permission/permission.decorator';
 import { PERMISSIONS } from 'src/users/permission.constant';
 import { UpdatePossitionIndexDto } from './dtos/update-position-index.dto';
+import { ActivityEntityType, ActivityAction } from 'src/activity-log/entities/activity-log.enum';
+import { LoggedResponse } from 'src/common/type/log.response';
 
 @Controller('positions')
 @UseGuards(AuthGuard, PermissionGuard)
@@ -28,44 +30,67 @@ export class PositionsController {
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @Permission(PERMISSIONS.POSITION_CREATE)
-    create(@Body() createPositionDto: CreatePositionDto): Promise<Position> {
-        return this.positionsService.create(createPositionDto);
+    async create(@Body() createPositionDto: CreatePositionDto): Promise<LoggedResponse<Position>> {
+        const position = await this.positionsService.create(createPositionDto);
+        return {
+            data: position,
+            log: {
+                action: 'CREATE_POSITION' as ActivityAction,
+                actionType: 'CREATE_POSITION' as ActivityAction,
+                entityType: ActivityEntityType.Position,
+                description: `Tạo vị trí ${position.name}`,
+                entityId: position.id,
+                entityName: position.name,
+            },
+        };
     }
 
     @Get()
     @Permission(PERMISSIONS.POSITION_READ)
-    findAll(): Promise<Position[]> {
+    async findAll(): Promise<Position[]> {
         return this.positionsService.findAll();
     }
 
     @Get(':id')
     @Permission(PERMISSIONS.POSITION_READ)
-    findOne(@Param('id') id: string): Promise<Position> {
+    async findOne(@Param('id') id: string): Promise<Position> {
         return this.positionsService.findOne(+id);
     }
 
     @Patch(':id')
     @Permission(PERMISSIONS.POSITION_UPDATE)
-    update(
+    async update(
         @Param('id') id: string,
         @Body() updatePositionDto: UpdatePositionDto,
-    ): Promise<Position> {
+    ): Promise<LoggedResponse<Position>> {
         return this.positionsService.update(+id, updatePositionDto);
     }
 
     @Patch(':id/index')
     @Permission(PERMISSIONS.POSITION_UPDATE)
-    updateIndex(
+    async updateIndex(
         @Param('id') id: string,
         @Body() updatePositionIndexDto: UpdatePossitionIndexDto,
-    ): Promise<Position> {
+    ): Promise<LoggedResponse<Position>> {
         return this.positionsService.updateIndex(+id, updatePositionIndexDto);
     }
 
     @Delete(':id')
     @Permission(PERMISSIONS.POSITION_DELETE)
     @HttpCode(HttpStatus.NO_CONTENT)
-    remove(@Param('id') id: string): Promise<void> {
-        return this.positionsService.remove(+id);
+    async remove(@Param('id') id: string): Promise<LoggedResponse<null>> {
+        await this.positionsService.remove(+id);
+        return {
+            data: null,
+            log: {
+                action: 'DELETE_POSITION' as ActivityAction,
+                actionType: 'DELETE_POSITION' as ActivityAction,
+                entityType: ActivityEntityType.Position,
+                description: `Xóa vị trí id=${id}`,
+                entityId: +id,
+                entityName: undefined,
+            },
+        };
     }
 }
+

@@ -8,6 +8,8 @@ import { UpdateDeviceClusterDto } from './dtos/update-device-cluster.dto';
 import { ProductionLine } from 'src/production-lines/entities/production-line.entity';
 import { Device } from 'src/devices/entities/device.entity';
 import type { ClusterConfig } from 'src/common/mqtt/cluster-config';
+import { LoggedResponse } from 'src/common/type/log.response';
+import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 
 const DEVICE_CLUSTER_TOPIC_KEY = '{clusterId}'
 
@@ -156,8 +158,9 @@ export class DeviceClustersService {
     async update(
         id: number,
         dto: UpdateDeviceClusterDto,
-    ): Promise<DeviceCluster> {
+    ): Promise<LoggedResponse<DeviceCluster>> {
         const cluster = await this.findOne(id);
+        const before = { ...cluster };
 
         if (dto.code && dto.code !== cluster.code) {
             const existing = await this.clusterRepository.findOne({
@@ -234,7 +237,23 @@ export class DeviceClustersService {
             productionLineId: cluster.productionLineId,
         });
 
-        return this.clusterRepository.save(cluster);
+        const updated = await this.clusterRepository.save(cluster);
+
+        return {
+            data: updated,
+            log: {
+                action: 'UPDATE_DEVICE_CLUSTER' as ActivityAction,
+                actionType: 'UPDATE_DEVICE_CLUSTER' as ActivityAction,
+                entityType: ActivityEntityType.DeviceCluster,
+                description: `Cập nhật cụm thiết bị ${updated.name}`,
+                entityId: updated.id,
+                entityName: updated.name,
+                meta: {
+                    before,
+                    after: updated,
+                },
+            },
+        };
     }
 
     async remove(id: number): Promise<void> {
