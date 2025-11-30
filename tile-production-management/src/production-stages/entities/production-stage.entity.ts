@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { Position } from '../../positions/entities/position.entity';
 import { ProductionLine } from '../../production-lines/entities/production-line.entity';
-
+import { ProductionStageHistory } from '../../production-stage-history/entities/production-stage-history.entity';
 @Entity('production_stages')
 export class ProductionStage {
   @PrimaryGeneratedColumn()
@@ -19,7 +19,7 @@ export class ProductionStage {
   @Column({ type: 'boolean', default: false })
   isActive: boolean;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'enum', enum: ['pending', 'running', 'waiting_log'], nullable: false, default: 'pending' })
   status: string;
 
   @Column({ type: 'timestamp', nullable: true })
@@ -27,6 +27,10 @@ export class ProductionStage {
 
   @Column({ type: 'int', nullable: true })
   productId: number;
+
+  // One-to-Many relationship with ProductionStageHistory
+  @OneToMany(() => ProductionStageHistory, history => history.stage, { cascade: true })
+  history: ProductionStageHistory[];
 
   // One-to-Many relationship with Position
   @OneToMany(() => Position, position => position.productionStage, { nullable: true })

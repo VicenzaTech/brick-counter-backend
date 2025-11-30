@@ -21,6 +21,7 @@ export enum ActivityEntityType {
   ApiToken = 'ApiToken',
   MeasurementType = 'MeasurementType',
   SalaryPeriod = 'SalaryPeriod',
+  ProductionStage = 'ProductionStage',
 }
 
 export enum ActivityStatus {
@@ -46,6 +47,12 @@ export enum ActivitySource {
 
 
 export type ActivityAction =
+  // BASE
+  |'CREATE'
+  | 'UPDATE'
+  | 'DELETE'
+  | 'ENABLE'
+  
   // AUTH
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'

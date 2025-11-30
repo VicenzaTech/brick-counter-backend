@@ -7,6 +7,12 @@ import { UpdateProductionStageDto } from './dtos/update-production-stage.dto';
 import { UpdateProductionStageStatusDto } from './dtos/update-production-stage-status.dto';
 import { ProductionLine } from '../production-lines/entities/production-line.entity';
 import { Position } from '../positions/entities/position.entity';
+import { ActivityLogService } from 'src/activity-log/activity-log.service';
+import { ActivityAction, ActivityEntityType, ActivitySource } from 'src/activity-log/entities/activity-log.enum';
+import { LogDTO } from 'src/activity-log/dto/log.dto';
+import { ActivityStatus, ActivitySeverity } from 'src/activity-log/entities/activity-log.enum';
+import { BrickType } from '../brick-types/entities/brick-type.entity';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class ProductionStagesService {
@@ -17,6 +23,10 @@ export class ProductionStagesService {
         private readonly productionLineRepo: Repository<ProductionLine>,
         @InjectRepository(Position)
         private readonly positionRepo: Repository<Position>,
+        @InjectRepository(BrickType)
+        private readonly brickTypeRepo: Repository<BrickType>,
+
+        private readonly activityLogService: ActivityLogService,
     ) { }
 
     async create(createDto: CreateProductionStageDto): Promise<ProductionStage> {
@@ -122,14 +132,45 @@ export class ProductionStagesService {
             );
         }
 
+        // Convert trạng thái sang text tiếng Việt
+        const statusTextMap: Record<string, string> = {
+            pending: 'Đang tạm dừng',
+            running: 'Đang sản xuất',
+            waiting_log: 'Chờ chốt sản lượng',
+        };
+        const oldStatusText = statusTextMap[stage.status] || stage.status;
+        const newStatusText = statusTextMap[updateStatusDto.status] || updateStatusDto.status;
+
+        // Lấy tên dòng sản phẩm từ productId nếu có
+        let productName = '';
+        if (updateStatusDto.productId) {
+            const brickType = await this.brickTypeRepo.findOne({ where: { id: updateStatusDto.productId } });
+            productName = brickType ? brickType.name : `${updateStatusDto.productId}`;
+        }
+
+        const logDto = new LogDTO();
+        logDto.action = 'UPDATE';
+        //TODO: Set user ID
+            // logDto.userId = user.id;
+        //
+        logDto.actionType = 'UPDATE_PRODUCTION_STAGE_STATUS';
+        logDto.entityType = ActivityEntityType.ProductionStage;
+        logDto.description = `Cập nhật trạng thái công đoạn '${stage.name}' cho dây chuyền ${stage.productionLineId}` +
+          (productName ? ` áp dụng cho dòng sản phẩm ${productName}` : '') +
+          ` từ ${oldStatusText} thành ${newStatusText}`;
+        logDto.entityId = stage.id;
+        logDto.status = ActivityStatus.SUCCESS;
+        logDto.severity = ActivitySeverity.INFO;
+        logDto.source = ActivitySource.WEB_APP;
+
         // Update status and other fields
         stage.status = updateStatusDto.status;
 
         // Update start time if provided
         if (updateStatusDto.startTime) {
             stage.startTime = new Date(updateStatusDto.startTime);
-        } else if (updateStatusDto.status === 'in_progress' && !stage.startTime) {
-            // Auto-set start time if status changes to in_progress and no start time is set
+        } else if (updateStatusDto.status === 'running' && !stage.startTime) {
+            // Auto-set start time if status changes to running and no start time is set
             stage.startTime = new Date();
         }
 
@@ -138,6 +179,7 @@ export class ProductionStagesService {
             stage.productId = updateStatusDto.productId;
         }
 
+        await this.activityLogService.log(logDto);
         return this.productionStageRepo.save(stage);
     }
 

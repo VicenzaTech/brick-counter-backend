@@ -52,6 +52,8 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LogInterceptor } from './common/interceptor/log/log.interceptor';
 import { BullModule } from '@nestjs/bullmq';
 import { ProductionStagesModule } from './production-stages/production-stages.module';
+import { ProductionStageHistoryModule } from './production-stage-history/production-stage-history.module';
+import { ProductionStageHistory } from './production-stage-history/entities/production-stage-history.entity';
 @Module({
     imports: [
         // Config module for environment variables
@@ -90,6 +92,7 @@ import { ProductionStagesModule } from './production-stages/production-stages.mo
                 MeasurementType,
                 ActivityLog,
                 ProductionStage,
+                ProductionStageHistory,
             ],
             synchronize: false, // Set to true to auto-create tables (development/staging only)
             migrationsRun: true // Set to true when initial db
@@ -133,6 +136,7 @@ import { ProductionStagesModule } from './production-stages/production-stages.mo
         ActivityLogModule,
         ActivityLogQueue,
         ProductionStagesModule,
+        ProductionStageHistoryModule,
     ],
     providers: [
         {

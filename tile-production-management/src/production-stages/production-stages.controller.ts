@@ -10,6 +10,7 @@ import {
     ParseIntPipe,
     UsePipes,
     ValidationPipe,
+    UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ProductionStagesService } from './production-stages.service';
@@ -17,6 +18,8 @@ import { CreateProductionStageDto } from './dtos/create-production-stage.dto';
 import { UpdateProductionStageDto } from './dtos/update-production-stage.dto';
 import { UpdateProductionStageStatusDto } from './dtos/update-production-stage-status.dto';
 import { ProductionStage } from './entities/production-stage.entity';
+import { Req } from '@nestjs/common';
+import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 
 @ApiTags('production-stages')
 @Controller('production-stages')

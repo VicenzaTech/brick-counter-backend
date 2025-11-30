@@ -16,3 +16,6 @@
 
 ❌ ERROR at 2025-11-27T06:00:00.034Z: relation "production_daily_summaries" does not exist
 
+
+❌ ERROR at 2025-11-29T06:00:00.024Z: (result.errorRate || 0).toFixed is not a function
+
