@@ -5,7 +5,7 @@ require('dotenv').config();
 // ====== CONFIG KẾT NỐI DATABASE ======
 const dataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
+  host: '192.168.221.4',
   port: parseInt(process.env.DB_PORT || '5450', 10),
   username: process.env.DB_USERNAME || 'admin',
   password: process.env.DB_PASSWORD || '123456',
