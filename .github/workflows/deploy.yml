@@ -16,7 +16,7 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
-          host: 192.168.1.224
+          host:  https://exhibit-forwarding-dividend-theaters.trycloudflare.com
           username: root
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
