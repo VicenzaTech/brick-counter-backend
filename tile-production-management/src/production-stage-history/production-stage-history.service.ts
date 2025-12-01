@@ -128,6 +128,7 @@ export class ProductionStageHistoryService {
       throw new NotFoundException('No running history record found for this stage and product');
     }
     // Merge update fields
+
     const updated = this.historyRepository.merge(latest, updateDto);
     return await this.historyRepository.save(updated);
   }

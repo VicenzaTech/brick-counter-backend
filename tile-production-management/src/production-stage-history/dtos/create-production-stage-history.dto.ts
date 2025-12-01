@@ -10,6 +10,7 @@ export class CreateProductionStageHistoryDto {
   @IsInt()
   productId?: number;
 
+  @IsOptional()
   @IsDateString()
   startTime: Date;
 

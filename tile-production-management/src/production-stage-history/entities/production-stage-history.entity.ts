@@ -27,9 +27,9 @@ export class ProductionStageHistory {
   @Column({ name: 'product_id', nullable: true })
   productId?: number;
 
-@ManyToOne(() => BrickType, { nullable: true })
-@JoinColumn({ name: 'product_id' })
-product?: BrickType;
+  @ManyToOne(() => BrickType, { nullable: true })
+  @JoinColumn({ name: 'product_id' })
+  product?: BrickType;
 
   @Column({ name: 'start_time', type: 'timestamp' })
   startTime: Date;
@@ -63,10 +63,10 @@ product?: BrickType;
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @Column({ 
+  @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP' 
+    onUpdate: 'CURRENT_TIMESTAMP'
   })
   updatedAt: Date;
 

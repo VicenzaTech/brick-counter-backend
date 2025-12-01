@@ -32,6 +32,19 @@ export class ProductionStageHistoryController {
 		);
 	}
 
+	/**
+	 * Update the latest history record for a given stageId and productId (where endTime is null)
+	 * Body: { stageId, productId, ...updateDto }
+	 */
+	@Put('update-latest')
+	async updateLatest(@Body() body: any) {
+		const { stageId, productId, ...updateDto } = body;
+		if (!stageId || !productId) {
+			throw new Error('stageId and productId are required');
+		}
+		return this.historyService.updateLatest(stageId, productId, updateDto);
+	}
+
 	@Get(':id')
 	async findOne(@Param('id', ParseIntPipe) id: number) {
 		return this.historyService.findOne(id);
@@ -49,20 +62,5 @@ export class ProductionStageHistoryController {
 	@Delete(':id')
 	async remove(@Param('id', ParseIntPipe) id: number) {
 		return this.historyService.remove(id);
-	}
-    
-	/**
-	 * Update the latest history record for a given stageId and productId (where endTime is null)
-	 * Body: { stageId, productId, ...updateDto }
-	 */
-	@Put('update-latest')
-	@UsePipes(new ValidationPipe())
-	async updateLatest(@Body() body: any) {
-		const { stageId, productId, ...updateDto } = body;
-		console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~", body)
-		if (!stageId || !productId) {
-			throw new Error('stageId and productId are required');
-		}
-		return this.historyService.updateLatest(stageId, productId, updateDto);
 	}
 }
