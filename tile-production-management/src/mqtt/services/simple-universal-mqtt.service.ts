@@ -36,8 +36,7 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
 
   private async connect(): Promise<void> {
     try {
-    //   const host = this.configService.get<string>('MQTT_HOST', '192.168.221.4');
-      const host = "192.168.221.4"
+      const host = this.configService.get<string>('MQTT_HOST', 'mosquitto');
       const port = this.configService.get<number>('MQTT_PORT', 1883);
       const username = this.configService.get<string>('MQTT_USERNAME', '');
       const password = this.configService.get<string>('MQTT_PASSWORD', '');

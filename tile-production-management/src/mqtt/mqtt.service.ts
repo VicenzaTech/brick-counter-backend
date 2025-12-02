@@ -79,10 +79,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
      */
     async connect(): Promise<void> {
         try {
-            const host = "192.168.221.4";
-            const port = 1883;
-            const password = "";
-            const username = "";
+            const host = this.configService.get<string>('MQTT_HOST', 'mosquitto');
+            const port = this.configService.get<number>('MQTT_PORT', 1883);
+            const username = this.configService.get<string>('MQTT_USERNAME', '');
+            const password = this.configService.get<string>('MQTT_PASSWORD', '');
 
             const brokerUrl = `mqtt://${host}:${port}`;
 

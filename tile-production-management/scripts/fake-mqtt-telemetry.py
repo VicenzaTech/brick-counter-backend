@@ -13,8 +13,7 @@ from datetime import datetime
 # =====================================
 # CONFIGURATION
 # =====================================
-# MQTT_BROKER = "192.168.221.4"
-MQTT_BROKER = "localhost"
+MQTT_BROKER = "192.168.221.4"
 MQTT_PORT = 1883
 MQTT_USERNAME = None  # Set if authentication is required
 MQTT_PASSWORD = None
@@ -94,6 +93,7 @@ def generate_telemetry_data(device_id: str) -> dict:
     
     # Quality data (RSSI signal strength)
     rssi = random.randint(-90, -30)  # WiFi signal strength in dBm
+    
     telemetry = {
         "ts": datetime.utcnow().isoformat() + "Z",
         "deviceId": device_id,

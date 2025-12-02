@@ -25,6 +25,7 @@ type DeviceSummary = {
     id: number;
     deviceId: string;
     name: string;
+    position?: number;
 };
 
 export interface ProductionLineStagesResponse {
@@ -151,18 +152,29 @@ export class ProductionStagesService {
             .addOrderBy('positions.index', 'ASC')
             .getMany();
 
+        // Changed to flat structure: { productionLineId: { stageId: DeviceSummary[] } }
+        // Frontend will extract the inner { stageId: DeviceSummary[] } object
         const stageDeviceMap: Record<number, Record<number, DeviceSummary[]>> = {};
 
         for (const stage of stages) {
-            const positionMap: Record<number, DeviceSummary[]> = {};
+            // Flatten all devices from all positions into a single array per stage
+            const allDevices: DeviceSummary[] = [];
             for (const position of stage.positions || []) {
-                positionMap[position.id] = (position.devices || []).map((device) => ({
-                    id: device.id,
-                    deviceId: device.deviceId,
-                    name: device.name,
-                }));
+                for (const device of position.devices || []) {
+                    allDevices.push({
+                        id: device.id,
+                        deviceId: device.deviceId,
+                        name: device.name,
+                        position: position.index, // Add position index
+                    });
+                }
             }
-            stageDeviceMap[stage.id] = positionMap;
+            
+            // Store devices array directly under productionLineId -> stageId
+            if (!stageDeviceMap[productionLineId]) {
+                stageDeviceMap[productionLineId] = {};
+            }
+            stageDeviceMap[productionLineId][stage.id] = allDevices;
         }
 
         return { stages, stageDeviceMap };
