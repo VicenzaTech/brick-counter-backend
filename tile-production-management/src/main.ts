@@ -662,7 +662,7 @@ async function seedBrickTypes(dataSource: DataSource) {
 
 async function seedMeasurementTypes(dataSource: DataSource): Promise<number> {
   console.log('🔁 Seeding measurement types...');
-  const code = 'BRICK_COUNTER';
+  const code = 'mdg';
 
   const existing = await dataSource.query(
     `SELECT id FROM measurement_types WHERE code = $1 LIMIT 1`,
@@ -712,12 +712,12 @@ async function seedMeasurementTypes(dataSource: DataSource): Promise<number> {
       'Đếm gạch (counter)',
       JSON.stringify(schema),
       1,
-      'Schema cho thiết bị đếm gạch BRICK_COUNTER',
+      'Schema cho thiết bị đếm gạch mdg',
     ],
   );
 
   const id = result[0].id as number;
-  console.log(`✅ Created measurement_type BRICK_COUNTER (ID: ${id})`);
+  console.log(`✅ Created measurement_type mdg (ID: ${id})`);
   return id;
 }
 
@@ -727,15 +727,54 @@ async function seedDeviceCluster(
   productionLineId?: number,
 ): Promise<number> {
   console.log('🔁 Seeding device cluster...');
-  const code = 'BRICK_COUNTER';
+  const code = 'mdg';
+  const clusterName = 'Cụm Brick Counter';
 
+  // Check by both code and name to handle unique constraints
   const existing = await dataSource.query(
-    `SELECT id FROM devices_cluster WHERE code = $1 LIMIT 1`,
-    [code],
+    `SELECT id FROM devices_cluster WHERE code = $1 OR name = $2 LIMIT 1`,
+    [code, clusterName],
   );
 
   if (existing && existing.length > 0) {
-    return existing[0].id as number;
+    const clusterId = existing[0].id as number;
+    console.log(`✅ Found existing device_cluster: ${clusterName} (ID: ${clusterId})`);
+    
+    // Update config if needed
+    const clusterConfig = {
+      qosDefault: 1,
+      interval_message_time: 60,
+      telemetry: {
+        topic: '/devices/{deviceId}/telemetry',
+        qos: 1,
+      },
+      commands: [
+        {
+          code: 'reset',
+          name: 'Reset thiết bị',
+          topic: '/devices/{deviceId}/commands/reset',
+          payloadTemplate: { action: 'reset' },
+        },
+        {
+          code: 'reset_counter',
+          name: 'Reset counter',
+          topic: '/devices/{deviceId}/commands/reset_counter',
+          payloadTemplate: { action: 'reset_counter' },
+        },
+      ],
+      other: {
+        note: 'Cụm mặc định cho thiết bị đếm gạch',
+      },
+    };
+    
+    await dataSource.query(
+      `UPDATE devices_cluster 
+       SET config = $1, measurement_type_id = $2
+       WHERE id = $3`,
+      [JSON.stringify(clusterConfig), measurementTypeId, clusterId]
+    );
+    
+    return clusterId;
   }
 
   const clusterConfig = {
@@ -769,7 +808,7 @@ async function seedDeviceCluster(
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id`,
     [
-      'Cụm Brick Counter',
+      clusterName,
       code,
       'Cụm cấu hình mặc định cho thiết bị đếm gạch',
       JSON.stringify(clusterConfig),
@@ -779,7 +818,7 @@ async function seedDeviceCluster(
   );
 
   const id = result[0].id as number;
-  console.log(`✅ Created device_cluster BRICK_COUNTER (ID: ${id})`);
+  console.log(`✅ Created device_cluster: ${clusterName} (ID: ${id})`);
   return id;
 }
 
@@ -804,7 +843,7 @@ async function seedDevices(dataSource: DataSource) {
     // Get device cluster (assuming it exists)
     const deviceCluster = await dataSource.query(
       `SELECT id FROM devices_cluster WHERE code = $1 LIMIT 1`,
-      ['BRICK_COUNTER']
+      ['mdg']
     );
 
     if (!deviceCluster || deviceCluster.length === 0) {
@@ -949,12 +988,12 @@ async function seedMeasurements(dataSource: DataSource) {
 
   // Measurement Type
   let measurementType = await measurementTypeRepo.findOne({
-    where: { code: 'BRICK_COUNTER' },
+    where: { code: 'mdg' },
   });
 
   if (!measurementType) {
     measurementType = measurementTypeRepo.create({
-      code: 'BRICK_COUNTER',
+      code: 'mdg',
       name: 'Đếm gạch',
       data_schema: {
         count: 'number',

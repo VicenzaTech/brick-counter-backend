@@ -103,4 +103,22 @@ export class ProductionStagesController {
     ): Promise<ProductionStage[]> {
         return this.stagesService.getProductionStagesByProductionLineId(productionLineId);
     }
+
+    @Get(':id/final-count')
+    @ApiOperation({ summary: 'Get final production count for a stage (for chốt sản lượng)' })
+    @ApiResponse({
+        status: 200,
+        description: 'Returns the final total count from the last position device',
+        schema: {
+            example: {
+                total: 1234,
+                deviceId: 'SAU-LN-DC1-PX1',
+                timestamp: '2025-12-02T10:30:45.123Z'
+            }
+        }
+    })
+    @ApiResponse({ status: 404, description: 'Stage not found or no measurements available' })
+    async getFinalCount(@Param('id', ParseIntPipe) id: number) {
+        return this.stagesService.getFinalProductionCount(id);
+    }
 }

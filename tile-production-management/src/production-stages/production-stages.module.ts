@@ -10,16 +10,18 @@ import { BrickType } from 'src/brick-types/entities/brick-type.entity';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { UsersModule } from 'src/users/users.module';
-import { ProductionStageHistoryModule } from 'src/production-stage-history/production-stage-history.module';
+import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
+import { Measurement } from '../measurement/entities/measurement.entity';
+import { Device } from '../devices/entities/device.entity';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([ProductionStage, ProductionLine, Position, BrickType]),
-        ActivityLogModule,
-        JwtModule.registerAsync({
-            useFactory: (configService: ConfigService): JwtModuleOptions => {
-                const JWT_ACCESS_SECRET = configService.get<string>('JWT_ACCESS_SECRET')
-                const JWT_ACCESS_EXPIRES = configService.get<string>('JWT_ACCESS_EXPIRES')
+  imports: [
+    TypeOrmModule.forFeature([ProductionStage, ProductionLine, Position, BrickType, DeviceCluster, Measurement, Device]),
+    ActivityLogModule,
+    JwtModule.registerAsync({
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
+        const JWT_ACCESS_SECRET = configService.get<string>('JWT_ACCESS_SECRET')
+        const JWT_ACCESS_EXPIRES = configService.get<string>('JWT_ACCESS_EXPIRES')
 
                 return {
                     global: true,
@@ -32,7 +34,6 @@ import { ProductionStageHistoryModule } from 'src/production-stage-history/produ
             inject: [ConfigService]
         }),
         UsersModule,
-        ProductionStageHistoryModule
     ],
     controllers: [ProductionStagesController],
     providers: [ProductionStagesService],

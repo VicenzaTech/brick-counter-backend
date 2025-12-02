@@ -20,6 +20,9 @@ export class SimpleUniversalHandler {
     // WebSocket gateways registry - key là namespace
     private wsGateways = new Map<string, any>();
 
+    // ⭐ Active devices tracking - chỉ process telemetry cho devices đang production
+    private activeDevices = new Set<string>(); // Set of deviceIds that are currently in production
+
     constructor(
         @InjectRepository(Device)
         private readonly deviceRepository: Repository<Device>,
@@ -44,6 +47,47 @@ export class SimpleUniversalHandler {
     }
 
     /**
+     * ⭐ Activate devices - bắt đầu lưu telemetry cho các devices này
+     */
+    activateDevices(deviceIds: string[]): void {
+        deviceIds.forEach(id => this.activeDevices.add(id));
+        this.logger.log(`✅ Activated ${deviceIds.length} devices for telemetry: ${deviceIds.join(', ')}`);
+        this.logger.log(`📊 Total active devices: ${this.activeDevices.size}`);
+    }
+
+    /**
+     * ⭐ Deactivate devices - ngừng lưu telemetry
+     */
+    deactivateDevices(deviceIds: string[]): void {
+        deviceIds.forEach(id => this.activeDevices.delete(id));
+        this.logger.log(`🛑 Deactivated ${deviceIds.length} devices: ${deviceIds.join(', ')}`);
+        this.logger.log(`📊 Remaining active devices: ${this.activeDevices.size}`);
+    }
+
+    /**
+     * ⭐ Deactivate all devices
+     */
+    deactivateAllDevices(): void {
+        const count = this.activeDevices.size;
+        this.activeDevices.clear();
+        this.logger.log(`🛑 Deactivated all ${count} devices`);
+    }
+
+    /**
+     * Get active devices count
+     */
+    getActiveDevicesCount(): number {
+        return this.activeDevices.size;
+    }
+
+    /**
+     * Check if device is active
+     */
+    isDeviceActive(deviceId: string): boolean {
+        return this.activeDevices.has(deviceId);
+    }
+
+    /**
      * Handle telemetry - SIMPLE, chỉ lưu raw data
      */
 
@@ -61,6 +105,16 @@ export class SimpleUniversalHandler {
             const partIndex = 1
             const clusterCode = parts[partIndex]; // ADD CLUSTER_CODE TO DEVICE ENTITY **
             const deviceId = parts[partIndex + 1]; //cluster code consider not need
+
+            // ⭐ CHECK: Chỉ xử lý telemetry cho devices đang active (trong production)
+            if (!this.activeDevices.has(deviceId)) {
+                // this.logger.debug(`⏭️ Skipping telemetry for inactive device: ${deviceId}`);
+                return;
+            }
+
+            // Log realtime data cho active device
+            this.logger.log(`📊 [ACTIVE] ${deviceId} - Data: ${JSON.stringify(saveMessage).substring(0, 150)}...`);
+
             // Get device info (để lấy ID và relations)
             const device = await this.deviceRepository.findOne({
                 where: { deviceId },
@@ -71,10 +125,9 @@ export class SimpleUniversalHandler {
                 return;
             }
 
-            this.logger.log(`🔄 Processing telemetry for ${deviceId} (cluster=${clusterCode}), calling saveRawData...`);
+            // this.logger.log(`🔄 Processing telemetry for ${deviceId} (cluster=${clusterCode}), calling saveRawData...`);
 
             // Save RAW data to measurements table
-            // await this.saveRawData(device, clusterCode, saveMessage);
             await this.measurementService.ingest({
                 data: saveMessage,
                 deviceId: deviceId,
@@ -84,7 +137,7 @@ export class SimpleUniversalHandler {
             // Broadcast RAW data via WebSocket
             this.broadcastRawData(clusterCode, deviceId, device, saveMessage);
 
-            this.logger.log(`✅ Processed telemetry for ${deviceId}`);
+            this.logger.log(`✅ Saved & broadcasted telemetry for ${deviceId}`);
 
         } catch (error) {
             this.logger.error(
@@ -210,7 +263,6 @@ export class SimpleUniversalHandler {
         }
 
         const topic = `devices/${clusterCode}/${deviceId}/cmd`;
-        console.log('Publishing command to topic123123', topic, command);
         const payload = JSON.stringify({
             ...command,
             timestamp: new Date().toISOString(),
