@@ -6,20 +6,21 @@ import {
     Param,
     Put,
     Delete,
-    Query,
     ParseIntPipe,
     UsePipes,
     ValidationPipe,
     UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { ProductionStagesService } from './production-stages.service';
+import { ProductionStagesService, ProductionLineStagesResponse } from './production-stages.service';
 import { CreateProductionStageDto } from './dtos/create-production-stage.dto';
 import { UpdateProductionStageDto } from './dtos/update-production-stage.dto';
 import { UpdateProductionStageStatusDto } from './dtos/update-production-stage-status.dto';
 import { ProductionStage } from './entities/production-stage.entity';
 import { Req } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
+import { Request } from 'express';
+import { User } from 'src/users/entities/user.entity';
 
 @ApiTags('production-stages')
 @Controller('production-stages')
@@ -52,7 +53,7 @@ export class ProductionStagesController {
     @ApiResponse({ status: 200, description: 'Return production stages for the specified production line.', type: [ProductionStage] })
     async findByProductionLine(
         @Param('productionLineId', ParseIntPipe) productionLineId: number,
-    ): Promise<ProductionStage[]> {
+    ): Promise<ProductionLineStagesResponse> {
         return this.stagesService.findStagesByProductionLine(productionLineId);
     }
 
@@ -77,14 +78,17 @@ export class ProductionStagesController {
     }
 
     @Post('update-status')
+    @UseGuards(AuthGuard)
     @UsePipes(new ValidationPipe())
     @ApiOperation({ summary: 'Update production stage status' })
     @ApiResponse({ status: 200, description: 'The production stage status has been successfully updated.', type: ProductionStage })
     @ApiResponse({ status: 404, description: 'Production stage not found.' })
     async updateStatus(
         @Body() updateStatusDto: UpdateProductionStageStatusDto,
+        @Req() req
     ): Promise<ProductionStage> {
-        return this.stagesService.updateStatus(updateStatusDto);
+        const user = req.user as User | undefined;
+        return this.stagesService.updateStatus(updateStatusDto, user);
     }
 
     @Get('by-production-line-id/:productionLineId')
@@ -100,7 +104,7 @@ export class ProductionStagesController {
     })
     async getByProductionLineId(
         @Param('productionLineId', ParseIntPipe) productionLineId: number
-    ): Promise<ProductionStage[]> {
+    ): Promise<ProductionLineStagesResponse> {
         return this.stagesService.getProductionStagesByProductionLineId(productionLineId);
     }
 

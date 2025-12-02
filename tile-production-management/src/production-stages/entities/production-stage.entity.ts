@@ -2,6 +2,8 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColum
 import { Position } from '../../positions/entities/position.entity';
 import { ProductionLine } from '../../production-lines/entities/production-line.entity';
 import { ProductionStageHistory } from '../../production-stage-history/entities/production-stage-history.entity';
+
+
 @Entity('production_stages')
 export class ProductionStage {
   @PrimaryGeneratedColumn()

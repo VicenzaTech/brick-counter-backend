@@ -106,6 +106,7 @@ export class SimpleUniversalHandler {
             const clusterCode = parts[partIndex]; // ADD CLUSTER_CODE TO DEVICE ENTITY **
             const deviceId = parts[partIndex + 1]; //cluster code consider not need
 
+            this.logger.log(`📊 [LIST_ACTIVE_DEVICE]`, this.activeDevices, deviceId);
             // ⭐ CHECK: Chỉ xử lý telemetry cho devices đang active (trong production)
             if (!this.activeDevices.has(deviceId)) {
                 // this.logger.debug(`⏭️ Skipping telemetry for inactive device: ${deviceId}`);
@@ -230,6 +231,8 @@ export class SimpleUniversalHandler {
             `cluster:${clusterCode}`,
         ];
 
+
+
         this.logger.debug("DEVICE POSITION", device.position);
         if (device.position?.productionLine?.id) {
             rooms.push(`line:${device.position.productionLine.id}`);
@@ -247,7 +250,7 @@ export class SimpleUniversalHandler {
         };
         this.logger.verbose(`BROADCARD PAYLOAD --- `, payload)
         gateway.broadcastTelemetry(rooms, payload);
-        this.logger.debug(`📡 Broadcasted to ${rooms.length} room(s)`);
+        this.logger.debug(`📡 Broadcasted to ${rooms.length} room(s)`, rooms);
     }
 
     /**

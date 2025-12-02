@@ -31,12 +31,12 @@ export class AuthController {
         res.cookie(COOKIE_KEY.REFRESH_TOKEN_KEY, loginData.tokens.refreshtoken, {
             httpOnly: true,
             secure: true,
-            maxAge: expired_ms
+            maxAge: expired_ms,
         })
         res.cookie(COOKIE_KEY.SESSION_ID_KEY, loginData.sessionId, {
             httpOnly: true,
             secure: true,
-            maxAge: expired_ms
+            maxAge: expired_ms,
         })
         return {
             data: loginData,
@@ -53,12 +53,20 @@ export class AuthController {
 
     @Post('/logout')
     @UseGuards(SessionGuard)
-    async logout(@Req() req, @Res({ passthrough: true }) res: Response): Promise<LoggedResponse<any>> {
+    async logout(@Req() req, @Res({ passthrough: true }) res: Response, @Body() body): Promise<LoggedResponse<any>> {
         // 1. logout if received user request
         // 2. force logout if expired token
+        const force = body?.force || false
         const sessionId = req.sessionId
         const user = req.user
-        const logoutData = await this.authService.logout(sessionId)
+
+        if (!force && !sessionId) {
+            throw new Error('Session ID is required for logout')
+        }
+        let logoutData;
+        if (sessionId) {
+            logoutData = await this.authService.logout(sessionId)
+        }
         res.clearCookie(COOKIE_KEY.REFRESH_TOKEN_KEY, {
             httpOnly: true,
         })
@@ -74,7 +82,17 @@ export class AuthController {
                 description: `Người dùng đã đăng xuất`,
                 entityId: undefined,
                 entityName: user?.username,
-            },  
+            },
+        }
+    }
+
+    @Post('/logout/force')
+    async forceLogout(@Body() body: any, @Res({ passthrough: true }) res: Response): Promise<LoggedResponse<any>> {
+        res.clearCookie(COOKIE_KEY.REFRESH_TOKEN_KEY, { httpOnly: true });
+        res.clearCookie(COOKIE_KEY.SESSION_ID_KEY, { httpOnly: true });
+
+        return {
+            data: "ok",
         }
     }
 
@@ -90,7 +108,6 @@ export class AuthController {
         const { tokens } = refreshData
         const expired_ms = Number((ms(expired)))
         res.cookie[COOKIE_KEY.REFRESH_TOKEN_KEY] = tokens.refreshtoken
-
         return {
             data: refreshData,
         }

@@ -7,6 +7,7 @@ import { ProductionStageHistory } from './entities/production-stage-history.enti
 @Module({
   imports: [TypeOrmModule.forFeature([ProductionStageHistory])],
   providers: [ProductionStageHistoryService],
-  controllers: [ProductionStageHistoryController]
+  controllers: [ProductionStageHistoryController],
+  exports: [ProductionStageHistoryService]
 })
 export class ProductionStageHistoryModule {}

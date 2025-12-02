@@ -18,6 +18,19 @@ import { SimpleUniversalHandler } from '../mqtt/handlers/simple-universal.handle
 import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
 import { Measurement } from '../measurement/entities/measurement.entity';
 import { Device } from '../devices/entities/device.entity';
+import { ProductionStageHistoryService } from 'src/production-stage-history/production-stage-history.service';
+import { StopReason } from 'src/production-stage-history/entities/production-stage-history.entity';
+
+type DeviceSummary = {
+    id: number;
+    deviceId: string;
+    name: string;
+};
+
+export interface ProductionLineStagesResponse {
+    stages: ProductionStage[];
+    stageDeviceMap: Record<number, Record<number, DeviceSummary[]>>;
+}
 
 @Injectable()
 export class ProductionStagesService {
@@ -45,6 +58,7 @@ export class ProductionStagesService {
         private readonly activityLogService: ActivityLogService,
         private readonly mqttService: SimpleUniversalMqttService,
         private readonly mqttHandler: SimpleUniversalHandler,
+        private readonly productionStageHistoryService: ProductionStageHistoryService,
     ) { }
 
     async create(createDto: CreateProductionStageDto): Promise<ProductionStage> {
@@ -126,15 +140,35 @@ export class ProductionStagesService {
         }
     }
 
-    async findStagesByProductionLine(productionLineId: number): Promise<ProductionStage[]> {
-        return this.productionStageRepo.find({
-            where: { productionLine: { id: productionLineId } },
-            relations: ['productionLine', 'positions'],
-            order: { order: 'ASC' },
-        });
+    async findStagesByProductionLine(productionLineId: number): Promise<ProductionLineStagesResponse> {
+        const stages = await this.productionStageRepo
+            .createQueryBuilder('stage')
+            .leftJoinAndSelect('stage.productionLine', 'productionLine')
+            .leftJoinAndSelect('stage.positions', 'positions')
+            .leftJoinAndSelect('positions.devices', 'devices')
+            .where('stage.productionLineId = :productionLineId', { productionLineId })
+            .orderBy('stage.order', 'ASC')
+            .addOrderBy('positions.index', 'ASC')
+            .getMany();
+
+        const stageDeviceMap: Record<number, Record<number, DeviceSummary[]>> = {};
+
+        for (const stage of stages) {
+            const positionMap: Record<number, DeviceSummary[]> = {};
+            for (const position of stage.positions || []) {
+                positionMap[position.id] = (position.devices || []).map((device) => ({
+                    id: device.id,
+                    deviceId: device.deviceId,
+                    name: device.name,
+                }));
+            }
+            stageDeviceMap[stage.id] = positionMap;
+        }
+
+        return { stages, stageDeviceMap };
     }
 
-    async updateStatus(updateStatusDto: UpdateProductionStageStatusDto): Promise<ProductionStage> {
+    async updateStatus(updateStatusDto: UpdateProductionStageStatusDto, user?: User): Promise<ProductionStage> {
         // Find the stage by production line and name
         // ⭐ Load stage with relations: positions -> devices -> cluster (để lấy cluster.code)
         const stage = await this.productionStageRepo.findOne({
@@ -154,31 +188,31 @@ export class ProductionStagesService {
         //status='running', reset counter cho tất cả thiết bị tại stage này
         if (updateStatusDto.status === 'running') {
             const devices = stage.positions?.flatMap(position => position.devices || []) || [];
-            
+
             this.logger.log(`🎯 Starting production for stage '${stage.name}'`);
             this.logger.log(`   Found ${devices.length} devices`);
-            
+
             // BƯỚC 1: Send MQTT reset_counters command
             for (const device of devices) {
                 if (!device.deviceId || !device.clusterId) {
                     this.logger.warn(`   ⚠️ Device ${device.deviceId} missing deviceId or cluster, skipping...`);
                     continue;
                 }
-                
+
                 const cluster = await this.clusterRepo.findOne({ where: { id: device.clusterId } });
                 if (!cluster) {
                     this.logger.warn(`   ⚠️ Cluster with ID ${device.clusterId} not found for device ${device.deviceId}, skipping...`);
                     continue;
                 }
                 const clusterCode = cluster?.code;
-                if (!clusterCode) { 
+                if (!clusterCode) {
                     this.logger.warn(`   ⚠️ Cluster not found for device ${device.deviceId}, skipping...`);
                     continue;
                 }
                 const resetCommand = {
                     action: 'reset_counters',
                 };
-                
+
                 try {
                     this.logger.log(`   📤 Sending RESET_COUNTER to ${clusterCode}/${device.deviceId}`);
                     await this.mqttService.publishCommand(clusterCode, device.deviceId, resetCommand);
@@ -187,7 +221,7 @@ export class ProductionStagesService {
                     this.logger.error(`   ❌ Failed to send reset command to ${device.deviceId}:`, error.message);
                 }
             }
-            
+
             // BƯỚC 2: Activate devices để bắt đầu lưu telemetry
             const deviceIds = devices.map(d => d.deviceId).filter(Boolean);
             if (deviceIds.length > 0) {
@@ -195,12 +229,12 @@ export class ProductionStagesService {
                 this.logger.log(`   ✅ Activated ${deviceIds.length} devices for telemetry tracking`);
             }
         }
-        
+
         // Deactivate devices chỉ khi: waiting_log → pending (sau khi chốt sản lượng)
         if (stage.status === 'waiting_log' && updateStatusDto.status === 'pending') {
             const devices = stage.positions?.flatMap(position => position.devices || []) || [];
             const deviceIds = devices.map(d => d.deviceId).filter(Boolean);
-            
+
             if (deviceIds.length > 0) {
                 this.mqttHandler.deactivateDevices(deviceIds);
                 this.logger.log(`   🛑 Deactivated ${deviceIds.length} devices (production completed, returned to pending)`);
@@ -216,23 +250,109 @@ export class ProductionStagesService {
         const oldStatusText = statusTextMap[stage.status] || stage.status;
         const newStatusText = statusTextMap[updateStatusDto.status] || updateStatusDto.status;
 
-        // Lấy tên dòng sản phẩm từ productId nếu có
+        const historyProductId = updateStatusDto.productId ?? stage.productId;
+        const historyTimestamp = new Date();
+        const userName = user?.username ?? 'system';
+
         let productName = '';
-        if (updateStatusDto.productId) {
-            const brickType = await this.brickTypeRepo.findOne({ where: { id: updateStatusDto.productId } });
-            productName = brickType ? brickType.name : `${updateStatusDto.productId}`;
+        let resolvedBrickType: BrickType | null = null;
+        if (historyProductId) {
+            resolvedBrickType = await this.brickTypeRepo.findOne({ where: { id: historyProductId } });
+            productName = resolvedBrickType ? resolvedBrickType.name : `${historyProductId}`;
         }
 
         const logDto = new LogDTO();
         logDto.action = 'UPDATE';
+        logDto.userId = user?.id;
+
+        let latestHistory = await this.productionStageHistoryService.getLatestStageHistory(stage.id);
+
+        if (updateStatusDto.status === 'running' && stage.status !== 'running') {
+            if (latestHistory && !latestHistory.endTime) {
+                await this.productionStageHistoryService.update(latestHistory.id, {
+                    endTime: historyTimestamp,
+                    createdByUsername: userName,
+                });
+            }
+            const runningNotes = this.buildHistoryNotes('running', stage.name, userName, updateStatusDto.notes);
+            await this.productionStageHistoryService.create({
+                stageId: stage.id,
+                productId: historyProductId,
+                productionLineId: stage.productionLineId,
+                startTime: historyTimestamp,
+                notes: runningNotes,
+                createdByUsername: userName,
+            });
+        } else if (updateStatusDto.status === 'waiting_log') {
+            if (!latestHistory || latestHistory.endTime) {
+                latestHistory = await this.productionStageHistoryService.create({
+                    stageId: stage.id,
+                    productId: historyProductId,
+                    productionLineId: stage.productionLineId,
+                    startTime: historyTimestamp,
+                    createdByUsername: userName,
+                });
+            }
+            const stopReason = updateStatusDto.stopReason ?? StopReason.MANUAL_STOP;
+            const waitingNotes = this.buildHistoryNotes('waiting_log', stage.name, userName, updateStatusDto.notes, stopReason);
+            const waitingUpdate: any = {
+                endTime: historyTimestamp,
+                stopReason,
+                notes: waitingNotes,
+                createdByUsername: userName,
+            };
+            const waitingProductId = historyProductId ?? latestHistory.productId;
+            if (waitingProductId !== undefined) {
+                waitingUpdate.productId = waitingProductId;
+            }
+            await this.productionStageHistoryService.update(latestHistory.id, waitingUpdate);
+        } else if (updateStatusDto.status === 'pending') {
+            if (!latestHistory || latestHistory.endTime) {
+                latestHistory = await this.productionStageHistoryService.create({
+                    stageId: stage.id,
+                    productId: historyProductId,
+                    productionLineId: stage.productionLineId,
+                    startTime: historyTimestamp,
+                    createdByUsername: userName,
+                });
+            }
+            const finalCount = await this.getFinalProductionCount(stage.id);
+            const quantity = finalCount?.total ?? 0;
+            const area = this.calculateAreaFromSpecs(quantity, resolvedBrickType?.specs);
+            const endTime = finalCount?.timestamp ?? historyTimestamp;
+            const pendingNotes = this.buildHistoryNotes('pending', stage.name, userName, updateStatusDto.notes, StopReason.END, quantity, area);
+            const pendingUpdate: any = {
+                endTime,
+                stopReason: StopReason.END,
+                quantity,
+                area,
+                notes: pendingNotes,
+                createdByUsername: userName,
+            };
+            const pendingProductId = historyProductId ?? latestHistory.productId;
+            if (pendingProductId !== undefined) {
+                pendingUpdate.productId = pendingProductId;
+            }
+            await this.productionStageHistoryService.update(latestHistory.id, pendingUpdate);
+        } else if (stage.status === 'running' && updateStatusDto.status !== 'running') {
+            if (latestHistory && !latestHistory.endTime) {
+                const genericNotes = this.buildHistoryNotes(updateStatusDto.status, stage.name, userName, updateStatusDto.notes);
+                await this.productionStageHistoryService.update(latestHistory.id, {
+                    endTime: historyTimestamp,
+                    notes: genericNotes,
+                    createdByUsername: userName,
+                });
+            }
+        }
+
         //TODO: Set user ID
-            // logDto.userId = user.id;
+        // logDto.userId = user.id;
         //
         logDto.actionType = 'UPDATE_PRODUCTION_STAGE_STATUS';
         logDto.entityType = ActivityEntityType.ProductionStage;
         logDto.description = `Cập nhật trạng thái công đoạn '${stage.name}' cho dây chuyền ${stage.productionLineId}` +
-          (productName ? ` áp dụng cho dòng sản phẩm ${productName}` : '') +
-          ` từ ${oldStatusText} thành ${newStatusText}`;
+            (productName ? ` áp dụng cho dòng sản phẩm ${productName}` : '') +
+            ` từ ${oldStatusText} thành ${newStatusText}`;
         logDto.entityId = stage.id;
         logDto.status = ActivityStatus.SUCCESS;
         logDto.severity = ActivitySeverity.INFO;
@@ -250,19 +370,14 @@ export class ProductionStagesService {
         return this.productionStageRepo.save(stage);
     }
 
-    async getProductionStagesByProductionLineId(productionLineId: number) {
-        // Find all production stages for the given production line ID
-        const stages = await this.productionStageRepo.find({
-            where: { productionLineId },
-            order: { order: 'ASC' }, // Assuming you have an 'order' field to maintain stage sequence
-            relations: ['productionLine'] // Include production line relation if needed
-        });
+    async getProductionStagesByProductionLineId(productionLineId: number): Promise<ProductionLineStagesResponse> {
+        const response = await this.findStagesByProductionLine(productionLineId);
 
-        if (!stages || stages.length === 0) {
+        if (!response.stages || response.stages.length === 0) {
             throw new NotFoundException(`No production stages found for production line ID: ${productionLineId}`);
         }
 
-        return stages;
+        return response;
     }
 
     /**
@@ -288,7 +403,7 @@ export class ProductionStagesService {
         }
 
         // Tìm position có index cao nhất
-        const maxPosition = stage.positions.reduce((max, pos) => 
+        const maxPosition = stage.positions.reduce((max, pos) =>
             pos.index > max.index ? pos : max
         );
 
@@ -303,7 +418,7 @@ export class ProductionStagesService {
 
         // Lấy tất cả measurements cuối cùng từ tất cả devices ở position này
         const deviceIds = maxPosition.devices.map(d => d.id);
-        
+
         // Query latest measurement cho từng device
         const latestMeasurements = await Promise.all(
             maxPosition.devices.map(async (device) => {
@@ -313,9 +428,11 @@ export class ProductionStagesService {
                     .orderBy('m.timestamp', 'DESC')
                     .limit(1)
                     .getOne();
-                
+                this.logger.log(`   🔧 measurement `, measurement);
+
                 if (measurement) {
-                    const total = measurement.data?.metrics?.total ?? measurement.data?.total ?? 0;
+                    const parseData = typeof measurement?.data === 'string' ? JSON.parse(measurement.data) : measurement.data;
+                    const total = parseData?.metrics?.total ?? parseData?.total ?? 0;
                     this.logger.log(`      • ${device.deviceId}: total=${total} at ${measurement.timestamp}`);
                     return { device, measurement, total };
                 }
@@ -330,10 +447,11 @@ export class ProductionStagesService {
             this.logger.warn(`   ⚠️ No measurements found for any device at position ${maxPosition.name}`);
             return null;
         }
+        this.logger.log(`   ✅ latestMeasurements`, latestMeasurements, ` | validMeasurements count: ${validMeasurements.length}`);
 
         // Tính tổng total từ tất cả devices
         const totalSum = validMeasurements.reduce((sum, m) => sum + m.total, 0);
-        
+
         // Lấy timestamp mới nhất
         const latestTimestamp = validMeasurements
             .map(m => m.measurement.timestamp)
@@ -350,4 +468,76 @@ export class ProductionStagesService {
             timestamp: latestTimestamp
         };
     }
+
+    private buildHistoryNotes(
+        status: string,
+        stageName: string,
+        userName: string,
+        customNotes?: string,
+        stopReason?: StopReason,
+        quantity?: number,
+        area?: number,
+    ): string | undefined {
+        if (customNotes && customNotes.trim().length > 0) {
+            return customNotes;
+        }
+
+        switch (status) {
+            case 'running':
+                return `Chạy công đoạn ${stageName}`;
+            case 'waiting_log':
+                return `Tạm dừng công đoạn ${stageName} (${this.getStopReasonLabel(stopReason)}).`;
+            case 'pending':
+                if (typeof quantity === 'number' && quantity >= 0) {
+                    const areaText = typeof area === 'number' ? `, dien tich ~${area} m2` : '';
+                    return `Chốt công đoạn ${stageName}, sản lượng ${quantity}-${areaText}.`;
+                }
+                return `Cập nhật công đoạn ${stageName} về trạng thái chờ.`;
+            default:
+                return undefined;
+        }
+    }
+
+    private getStopReasonLabel(reason?: StopReason): string {
+        switch (reason) {
+            case StopReason.MANUAL_STOP:
+                return 'Dừng thủ công';
+            case StopReason.END:
+                return 'Kết thúc ca';
+            case StopReason.MACHINE_ERROR:
+                return 'Lỗi máy';
+            case StopReason.CHANGE_PRODUCT:
+                return 'Đổi sản phẩm';
+            case StopReason.SHIFT_END:
+                return 'Kết thúc ca sản xuất';
+            case StopReason.MAINTENANCE:
+                return 'Bảo trì';
+            case StopReason.OTHER:
+                return 'Khác';
+            default:
+                return 'Không xác định';
+        }
+    }
+
+    private calculateAreaFromSpecs(quantity: number, specs?: any): number | undefined {
+        if (quantity <= 0) {
+            return 0;
+        }
+
+        if (!specs) {
+            return undefined;
+        }
+
+        const width = Number(specs.width);
+        const height = Number(specs.height);
+
+        if (!width || !height || Number.isNaN(width) || Number.isNaN(height)) {
+            return undefined;
+        }
+
+        const tileArea = (width / 1000) * (height / 1000);
+        const totalArea = quantity * tileArea;
+        return Math.round(totalArea * 100) / 100;
+    }
+
 }
