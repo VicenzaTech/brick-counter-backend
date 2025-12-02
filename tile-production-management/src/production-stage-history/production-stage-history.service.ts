@@ -71,6 +71,11 @@ export class ProductionStageHistoryService {
     async findStagesByProductionLine(productionLineId: number): Promise<ProductionStageHistory[]> {
         return this.historyRepository.find({
             where: { productionLine: { id: productionLineId } },
+            order: {
+                updatedAt: 'DESC'
+            },
+            relations: ['stage', 'product'],
+            take: 50,
         });
     }
 

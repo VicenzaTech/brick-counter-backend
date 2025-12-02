@@ -3,7 +3,7 @@ import { IsDateString, IsInt, IsNumber, IsOptional, IsString, IsEnum, IsBoolean,
 import { StopReason } from '../entities/production-stage-history.entity';
 
 export class CreateProductionStageHistoryDto {
-    @IsInt()
+    @IsNumber()
     stageId: number;
 
     @IsOptional()
@@ -12,7 +12,7 @@ export class CreateProductionStageHistoryDto {
 
     @IsNotEmpty()
     @IsNumber()
-    lineid: number;
+    productionLineId: number;
 
     @IsOptional()
     @IsDateString()

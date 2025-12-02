@@ -9,7 +9,9 @@ export enum StopReason {
     CHANGE_PRODUCT = 'change_product',
     SHIFT_END = 'shift_end',
     MAINTENANCE = 'maintenance',
-    OTHER = 'other'
+    OTHER = 'other',
+    MANUAL_STOP = 'manual_stop',
+    END = 'end',
 }
 
 @Entity('production_stage_history')
