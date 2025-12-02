@@ -37,7 +37,7 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
   private async connect(): Promise<void> {
     try {
     //   const host = this.configService.get<string>('MQTT_HOST', '192.168.221.4');
-      const host = "192.168.221.5"
+      const host = "192.168.221.4"
       const port = this.configService.get<number>('MQTT_PORT', 1883);
       const username = this.configService.get<string>('MQTT_USERNAME', '');
       const password = this.configService.get<string>('MQTT_PASSWORD', '');
@@ -206,18 +206,12 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
 
   private async onMessage(topic: string, payload: Buffer): Promise<void> {
     try {
-      this.logger.debug("PAYLOAD ~~~", payload, typeof payload);
       const payloadStr = payload.toString('utf-8');
-      
-      this.logger.log(`📥 Processing message...`);
-      this.logger.log(`   Topic: ${topic}`);
-      this.logger.log(`   Raw payload: ${payloadStr}`);
 
       // Parse JSON
       let message: any;
       try {
         message = JSON.stringify(payloadStr);
-        this.logger.debug("PAYLOAD ~~~", message, typeof message);
 
       } catch (error) {
         this.logger.error(`❌ JSON parse failed: ${error.message}`);
@@ -225,11 +219,11 @@ export class SimpleUniversalMqttService implements OnModuleInit, OnModuleDestroy
         return;
       }
 
-      this.logger.log(`   Parsed:`, JSON.stringify(message, null, 2));
+      // this.logger.log(`   Parsed:`, JSON.stringify(message, null, 2));
 
-      // Route to handler
+      // Route to handler (handler sẽ tự filter devices đang active)
       if (topic.endsWith('/telemetry')) {
-        this.logger.log(`   ➡️ Routing to handleTelemetry()`, message);
+        // this.logger.log(`   ➡️ Routing to handleTelemetry()`, message);
         await this.handler.handleTelemetry(topic, payload);
       } else if (topic.endsWith('/status')) {
         this.logger.log(`   ➡️ Routing to handleStatus()`);

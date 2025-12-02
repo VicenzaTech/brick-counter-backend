@@ -22,9 +22,6 @@ export class ProductionStage {
   @Column({ type: 'enum', enum: ['pending', 'running', 'waiting_log'], nullable: false, default: 'pending' })
   status: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  startTime: Date;
-
   @Column({ type: 'int', nullable: true })
   productId: number;
 
