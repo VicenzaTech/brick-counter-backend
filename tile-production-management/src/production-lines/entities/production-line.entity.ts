@@ -6,50 +6,54 @@ import { ProductionMetric } from '../../production-metrics/entities/production-m
 import { BrickType } from '../../brick-types/entities/brick-type.entity';
 import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
 import { ProductionStage } from '../../production-stages/entities/production-stage.entity';
+import { ProductionStageHistory } from 'src/production-stage-history/entities/production-stage-history.entity';
 
 @Entity('production_lines')
 export class ProductionLine {
-  @PrimaryGeneratedColumn()
-  id: number;
+    @PrimaryGeneratedColumn()
+    id: number;
 
-  @Column()
-  name: string;
+    @Column()
+    name: string;
 
-  @Column({ nullable: true })
-  description?: string;
+    @Column({ nullable: true })
+    description?: string;
 
-  @Column({ nullable: true })
-  capacity?: number;
+    @Column({ nullable: true })
+    capacity?: number;
 
-  @Column({ default: 'active' })
-  status: string;
+    @Column({ default: 'active' })
+    status: string;
 
-  // Current brick type being produced on this line
-  @Column({ nullable: true })
-  activeBrickTypeId?: number;
+    // Current brick type being produced on this line
+    @Column({ nullable: true })
+    activeBrickTypeId?: number;
 
-  @ManyToOne(() => BrickType, { nullable: true })
-  @JoinColumn({ name: 'activeBrickTypeId' })
-  activeBrickType?: BrickType;
+    @ManyToOne(() => BrickType, { nullable: true })
+    @JoinColumn({ name: 'activeBrickTypeId' })
+    activeBrickType?: BrickType;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  productionStatus?: 'producing' | 'paused' | 'stopped';
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    productionStatus?: 'producing' | 'paused' | 'stopped';
 
-  @ManyToOne(() => Workshop, (workshop) => workshop.lines)
-  workshop: Workshop;
+    @ManyToOne(() => Workshop, (workshop) => workshop.lines)
+    workshop: Workshop;
 
-  @OneToMany(() => Position, (pos) => pos.productionLine)
-  positions: Position[];
+    @OneToMany(() => Position, (pos) => pos.productionLine)
+    positions: Position[];
 
-  @OneToMany(() => ProductionSummary, (sum) => sum.productionLine)
-  summaries: ProductionSummary[];
+    @OneToMany(() => ProductionSummary, (sum) => sum.productionLine)
+    summaries: ProductionSummary[];
 
-  @OneToMany(() => ProductionMetric, (metric) => metric.productionLine)
-  metrics: ProductionMetric[];
+    @OneToMany(() => ProductionMetric, (metric) => metric.productionLine)
+    metrics: ProductionMetric[];
 
-  @OneToMany(() => DeviceCluster, (cluster) => cluster.productionLine)
-  deviceClusters: DeviceCluster[];
+    @OneToMany(() => DeviceCluster, (cluster) => cluster.productionLine)
+    deviceClusters: DeviceCluster[];
 
-  @OneToMany(() => ProductionStage, (stage) => stage.productionLine)
-  productionStages: ProductionStage[];
+    @OneToMany(() => ProductionStage, (stage) => stage.productionLine)
+    productionStages: ProductionStage[];
+
+    @OneToMany(() => ProductionStageHistory, (history) => history.productionLine)
+    stageHistories: any[];
 }

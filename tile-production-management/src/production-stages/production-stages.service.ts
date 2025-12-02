@@ -25,7 +25,6 @@ export class ProductionStagesService {
         private readonly positionRepo: Repository<Position>,
         @InjectRepository(BrickType)
         private readonly brickTypeRepo: Repository<BrickType>,
-
         private readonly activityLogService: ActivityLogService,
     ) { }
 
@@ -151,13 +150,13 @@ export class ProductionStagesService {
         const logDto = new LogDTO();
         logDto.action = 'UPDATE';
         //TODO: Set user ID
-            // logDto.userId = user.id;
+        // logDto.userId = user.id;
         //
         logDto.actionType = 'UPDATE_PRODUCTION_STAGE_STATUS';
         logDto.entityType = ActivityEntityType.ProductionStage;
         logDto.description = `Cập nhật trạng thái công đoạn '${stage.name}' cho dây chuyền ${stage.productionLineId}` +
-          (productName ? ` áp dụng cho dòng sản phẩm ${productName}` : '') +
-          ` từ ${oldStatusText} thành ${newStatusText}`;
+            (productName ? ` áp dụng cho dòng sản phẩm ${productName}` : '') +
+            ` từ ${oldStatusText} thành ${newStatusText}`;
         logDto.entityId = stage.id;
         logDto.status = ActivityStatus.SUCCESS;
         logDto.severity = ActivitySeverity.INFO;

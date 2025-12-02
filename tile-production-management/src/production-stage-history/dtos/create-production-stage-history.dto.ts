@@ -1,44 +1,48 @@
 // src/production-stage-history/dto/create-production-stage-history.dto.ts
-import { IsDateString, IsInt, IsNumber, IsOptional, IsString, IsEnum, IsBoolean } from 'class-validator';
+import { IsDateString, IsInt, IsNumber, IsOptional, IsString, IsEnum, IsBoolean, IsNotEmpty } from 'class-validator';
 import { StopReason } from '../entities/production-stage-history.entity';
 
 export class CreateProductionStageHistoryDto {
-  @IsInt()
-  stageId: number;
+    @IsInt()
+    stageId: number;
 
-  @IsOptional()
-  @IsInt()
-  productId?: number;
+    @IsOptional()
+    @IsInt()
+    productId?: number;
 
-  @IsOptional()
-  @IsDateString()
-  startTime: Date;
+    @IsNotEmpty()
+    @IsNumber()
+    lineid: number;
 
-  @IsOptional()
-  @IsDateString()
-  endTime?: Date;
+    @IsOptional()
+    @IsDateString()
+    startTime: Date;
 
-  @IsOptional()
-  @IsNumber()
-  quantity?: number;
+    @IsOptional()
+    @IsDateString()
+    endTime?: Date;
 
-  @IsOptional()
-  @IsNumber()
-  area?: number;
+    @IsOptional()
+    @IsNumber()
+    quantity?: number;
 
-  @IsOptional()
-  @IsEnum(StopReason)
-  stopReason?: StopReason;
+    @IsOptional()
+    @IsNumber()
+    area?: number;
 
-  @IsOptional()
-  @IsBoolean()
-  isEmergency?: boolean;
+    @IsOptional()
+    @IsEnum(StopReason)
+    stopReason?: StopReason;
 
-  @IsOptional()
-  @IsString()
-  notes?: string;
+    @IsOptional()
+    @IsBoolean()
+    isEmergency?: boolean;
 
-  @IsOptional()
-  @IsString()
-  createdByUsername?: string;
+    @IsOptional()
+    @IsString()
+    notes?: string;
+
+    @IsOptional()
+    @IsString()
+    createdByUsername?: string;
 }

@@ -101,6 +101,27 @@ export class AuthService {
         }
     }
 
+    /**
+     * Force logout helper. Can revoke a single session by sessionId
+     * or revoke all sessions for a user by userId.
+     */
+    async forceLogout(input: { sessionId?: string; userId?: number }) {
+        const { sessionId, userId } = input;
+        if (!sessionId && !userId) {
+            throw new UnauthorizedException('sessionId or userId is required for force logout');
+        }
+
+        if (sessionId) {
+            await this.sessionService.revokeSession(sessionId);
+            return { sessionId };
+        }
+
+        if (userId) {
+            await this.sessionService.revokeAllSessionsForUser(userId);
+            return { userId };
+        }
+    }
+
     async refresh(user: User, refreshToken: string, sessionId: string) {
         // Check params
         if (!user || !refreshToken || !sessionId) {

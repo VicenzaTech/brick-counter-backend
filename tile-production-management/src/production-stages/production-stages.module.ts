@@ -10,30 +10,32 @@ import { BrickType } from 'src/brick-types/entities/brick-type.entity';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { UsersModule } from 'src/users/users.module';
+import { ProductionStageHistoryModule } from 'src/production-stage-history/production-stage-history.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ProductionStage, ProductionLine, Position, BrickType]),
-    ActivityLogModule,
-    JwtModule.registerAsync({
-      useFactory: (configService: ConfigService): JwtModuleOptions => {
-        const JWT_ACCESS_SECRET = configService.get<string>('JWT_ACCESS_SECRET')
-        const JWT_ACCESS_EXPIRES = configService.get<string>('JWT_ACCESS_EXPIRES')
+    imports: [
+        TypeOrmModule.forFeature([ProductionStage, ProductionLine, Position, BrickType]),
+        ActivityLogModule,
+        JwtModule.registerAsync({
+            useFactory: (configService: ConfigService): JwtModuleOptions => {
+                const JWT_ACCESS_SECRET = configService.get<string>('JWT_ACCESS_SECRET')
+                const JWT_ACCESS_EXPIRES = configService.get<string>('JWT_ACCESS_EXPIRES')
 
-        return {
-          global: true,
-          secret: JWT_ACCESS_SECRET,
-          signOptions: {
-            expiresIn: JWT_ACCESS_EXPIRES as any
-          }
-        }
-      },
-      inject: [ConfigService]
-    }),
-    UsersModule
-  ],
-  controllers: [ProductionStagesController],
-  providers: [ProductionStagesService],
-  exports: [ProductionStagesService]
+                return {
+                    global: true,
+                    secret: JWT_ACCESS_SECRET,
+                    signOptions: {
+                        expiresIn: JWT_ACCESS_EXPIRES as any
+                    }
+                }
+            },
+            inject: [ConfigService]
+        }),
+        UsersModule,
+        ProductionStageHistoryModule
+    ],
+    controllers: [ProductionStagesController],
+    providers: [ProductionStagesService],
+    exports: [ProductionStagesService]
 })
 export class ProductionStagesModule { }
