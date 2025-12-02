@@ -10,10 +10,6 @@ export class UpdateProductionStageStatusDto {
   @IsString()
   status: string;
 
-  @IsDateString()
-  @IsOptional()
-  startTime?: Date;
-
   @IsNumber()
   @IsOptional()
   productId?: number;
