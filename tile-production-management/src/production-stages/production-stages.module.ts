@@ -14,10 +14,10 @@ import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entit
 import { Measurement } from '../measurement/entities/measurement.entity';
 import { Device } from '../devices/entities/device.entity';
 import { ProductionStageHistoryModule } from '../production-stage-history/production-stage-history.module';
-
+import { ProductionStageHistory } from 'src/production-stage-history/entities/production-stage-history.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProductionStage, ProductionLine, Position, BrickType, DeviceCluster, Measurement, Device]),
+    TypeOrmModule.forFeature([ProductionStage, ProductionLine, Position, BrickType, DeviceCluster, Measurement, Device, ProductionStageHistory]),
     ActivityLogModule,
     ProductionStageHistoryModule,
     JwtModule.registerAsync({

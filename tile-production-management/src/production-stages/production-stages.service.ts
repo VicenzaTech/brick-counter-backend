@@ -19,7 +19,7 @@ import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entit
 import { Measurement } from '../measurement/entities/measurement.entity';
 import { Device } from '../devices/entities/device.entity';
 import { ProductionStageHistoryService } from 'src/production-stage-history/production-stage-history.service';
-import { StopReason } from 'src/production-stage-history/entities/production-stage-history.entity';
+import { StopReason, ProductionStageHistory } from 'src/production-stage-history/entities/production-stage-history.entity';
 
 type DeviceSummary = {
     id: number;
@@ -55,6 +55,9 @@ export class ProductionStagesService {
 
         @InjectRepository(Device)
         private readonly deviceRepo: Repository<Device>,
+
+        @InjectRepository(ProductionStageHistory)
+        private readonly historyRepo: Repository<ProductionStageHistory>,
 
         private readonly activityLogService: ActivityLogService,
         private readonly mqttService: SimpleUniversalMqttService,
@@ -152,11 +155,30 @@ export class ProductionStagesService {
             .addOrderBy('positions.index', 'ASC')
             .getMany();
 
+        // Fetch startTime from latest running history (endTime IS NULL)
+        const stagesWithStartTime = await Promise.all(
+            stages.map(async (stage) => {
+                try {
+                    const runningHistory = await this.productionStageHistoryService.getLatestStageHistory(stage.id);
+                    return {
+                        ...stage,
+                        startTime: runningHistory?.startTime || null,
+                    };
+                } catch (error) {
+                    this.logger.warn(`Failed to fetch history for stage ${stage.id}: ${error.message}`);
+                    return {
+                        ...stage,
+                        startTime: null,
+                    };
+                }
+            })
+        );
+
         // Changed to flat structure: { productionLineId: { stageId: DeviceSummary[] } }
         // Frontend will extract the inner { stageId: DeviceSummary[] } object
         const stageDeviceMap: Record<number, Record<number, DeviceSummary[]>> = {};
 
-        for (const stage of stages) {
+        for (const stage of stagesWithStartTime) {
             // Flatten all devices from all positions into a single array per stage
             const allDevices: DeviceSummary[] = [];
             for (const position of stage.positions || []) {
@@ -177,7 +199,7 @@ export class ProductionStagesService {
             stageDeviceMap[productionLineId][stage.id] = allDevices;
         }
 
-        return { stages, stageDeviceMap };
+        return { stages: stagesWithStartTime, stageDeviceMap };
     }
 
     async updateStatus(updateStatusDto: UpdateProductionStageStatusDto, user?: User): Promise<ProductionStage> {
