@@ -188,31 +188,31 @@ export class ProductionStagesService {
         //status='running', reset counter cho tất cả thiết bị tại stage này
         if (updateStatusDto.status === 'running') {
             const devices = stage.positions?.flatMap(position => position.devices || []) || [];
-            
+
             this.logger.log(`🎯 Starting production for stage '${stage.name}'`);
             this.logger.log(`   Found ${devices.length} devices`);
-            
+
             // BƯỚC 1: Send MQTT reset_counters command
             for (const device of devices) {
                 if (!device.deviceId || !device.clusterId) {
                     this.logger.warn(`   ⚠️ Device ${device.deviceId} missing deviceId or cluster, skipping...`);
                     continue;
                 }
-                
+
                 const cluster = await this.clusterRepo.findOne({ where: { id: device.clusterId } });
                 if (!cluster) {
                     this.logger.warn(`   ⚠️ Cluster with ID ${device.clusterId} not found for device ${device.deviceId}, skipping...`);
                     continue;
                 }
                 const clusterCode = cluster?.code;
-                if (!clusterCode) { 
+                if (!clusterCode) {
                     this.logger.warn(`   ⚠️ Cluster not found for device ${device.deviceId}, skipping...`);
                     continue;
                 }
                 const resetCommand = {
                     action: 'reset_counters',
                 };
-                
+
                 try {
                     this.logger.log(`   📤 Sending RESET_COUNTER to ${clusterCode}/${device.deviceId}`);
                     await this.mqttService.publishCommand(clusterCode, device.deviceId, resetCommand);
@@ -221,7 +221,7 @@ export class ProductionStagesService {
                     this.logger.error(`   ❌ Failed to send reset command to ${device.deviceId}:`, error.message);
                 }
             }
-            
+
             // BƯỚC 2: Activate devices để bắt đầu lưu telemetry
             const deviceIds = devices.map(d => d.deviceId).filter(Boolean);
             if (deviceIds.length > 0) {
@@ -229,12 +229,12 @@ export class ProductionStagesService {
                 this.logger.log(`   ✅ Activated ${deviceIds.length} devices for telemetry tracking`);
             }
         }
-        
+
         // Deactivate devices chỉ khi: waiting_log → pending (sau khi chốt sản lượng)
         if (stage.status === 'waiting_log' && updateStatusDto.status === 'pending') {
             const devices = stage.positions?.flatMap(position => position.devices || []) || [];
             const deviceIds = devices.map(d => d.deviceId).filter(Boolean);
-            
+
             if (deviceIds.length > 0) {
                 this.mqttHandler.deactivateDevices(deviceIds);
                 this.logger.log(`   🛑 Deactivated ${deviceIds.length} devices (production completed, returned to pending)`);
@@ -344,7 +344,7 @@ export class ProductionStagesService {
                 });
             }
         }
-        
+
         //TODO: Set user ID
         // logDto.userId = user.id;
         //
@@ -403,7 +403,7 @@ export class ProductionStagesService {
         }
 
         // Tìm position có index cao nhất
-        const maxPosition = stage.positions.reduce((max, pos) => 
+        const maxPosition = stage.positions.reduce((max, pos) =>
             pos.index > max.index ? pos : max
         );
 
@@ -418,7 +418,7 @@ export class ProductionStagesService {
 
         // Lấy tất cả measurements cuối cùng từ tất cả devices ở position này
         const deviceIds = maxPosition.devices.map(d => d.id);
-        
+
         // Query latest measurement cho từng device
         const latestMeasurements = await Promise.all(
             maxPosition.devices.map(async (device) => {
@@ -428,9 +428,11 @@ export class ProductionStagesService {
                     .orderBy('m.timestamp', 'DESC')
                     .limit(1)
                     .getOne();
-                
+                this.logger.log(`   🔧 measurement `, measurement);
+
                 if (measurement) {
-                    const total = measurement.data?.metrics?.total ?? measurement.data?.total ?? 0;
+                    const parseData = typeof measurement?.data === 'string' ? JSON.parse(measurement.data) : measurement.data;
+                    const total = parseData?.metrics?.total ?? parseData?.total ?? 0;
                     this.logger.log(`      • ${device.deviceId}: total=${total} at ${measurement.timestamp}`);
                     return { device, measurement, total };
                 }
@@ -445,10 +447,11 @@ export class ProductionStagesService {
             this.logger.warn(`   ⚠️ No measurements found for any device at position ${maxPosition.name}`);
             return null;
         }
+        this.logger.log(`   ✅ latestMeasurements`, latestMeasurements, ` | validMeasurements count: ${validMeasurements.length}`);
 
         // Tính tổng total từ tất cả devices
         const totalSum = validMeasurements.reduce((sum, m) => sum + m.total, 0);
-        
+
         // Lấy timestamp mới nhất
         const latestTimestamp = validMeasurements
             .map(m => m.measurement.timestamp)

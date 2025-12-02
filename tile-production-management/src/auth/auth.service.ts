@@ -140,10 +140,6 @@ export class AuthService {
 
         // Update to redis session
         const updatedSession = await this.sessionService.updateRefreshToken(sessionId, tokens.refreshtoken)
-        if (!updatedSession) {
-            throw new UnauthorizedException('Phiên đăng nhập đã hết hạn')
-        }
-
         return {
             tokens,
             user: {

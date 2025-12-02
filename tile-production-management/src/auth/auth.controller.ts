@@ -31,12 +31,12 @@ export class AuthController {
         res.cookie(COOKIE_KEY.REFRESH_TOKEN_KEY, loginData.tokens.refreshtoken, {
             httpOnly: true,
             secure: true,
-            maxAge: expired_ms
+            maxAge: expired_ms,
         })
         res.cookie(COOKIE_KEY.SESSION_ID_KEY, loginData.sessionId, {
             httpOnly: true,
             secure: true,
-            maxAge: expired_ms
+            maxAge: expired_ms,
         })
         return {
             data: loginData,
@@ -108,7 +108,6 @@ export class AuthController {
         const { tokens } = refreshData
         const expired_ms = Number((ms(expired)))
         res.cookie[COOKIE_KEY.REFRESH_TOKEN_KEY] = tokens.refreshtoken
-
         return {
             data: refreshData,
         }
