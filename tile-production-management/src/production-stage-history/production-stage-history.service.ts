@@ -111,7 +111,10 @@ export class ProductionStageHistoryService {
 
     async getLatestStageHistory(stageId: number): Promise<ProductionStageHistory | null> {
         return await this.historyRepository.findOne({
-            where: { stageId },
+            where: { 
+                stageId, 
+                endTime: IsNull() 
+            },
             order: { startTime: 'DESC' },
         });
     }
