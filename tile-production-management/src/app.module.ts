@@ -54,6 +54,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { ProductionStagesModule } from './production-stages/production-stages.module';
 import { ProductionStageHistoryModule } from './production-stage-history/production-stage-history.module';
 import { ProductionStageHistory } from './production-stage-history/entities/production-stage-history.entity';
+import { ProductionLineRun } from './production-line-runs/entities/production-line-run.entity';
+import { ProductionLineRunsModule } from './production-line-runs/production-line-runs.module';
 @Module({
     imports: [
         // Config module for environment variables
@@ -93,9 +95,10 @@ import { ProductionStageHistory } from './production-stage-history/entities/prod
                 ActivityLog,
                 ProductionStage,
                 ProductionStageHistory,
+                ProductionLineRun,
             ],
-            synchronize: false, // Set to true to auto-create tables (development/staging only)
-            migrationsRun: true // Set to true when initial db
+            synchronize: true, // Set to true to auto-create tables (development/staging only)
+            migrationsRun: false // Set to true when initial db
         }),
 
         BullModule.forRootAsync({
@@ -137,6 +140,7 @@ import { ProductionStageHistory } from './production-stage-history/entities/prod
         ActivityLogQueue,
         ProductionStagesModule,
         ProductionStageHistoryModule,
+        ProductionLineRunsModule,
     ],
     providers: [
         {

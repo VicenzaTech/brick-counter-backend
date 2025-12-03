@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { ProductionStage } from '../../production-stages/entities/production-stage.entity';
 import { BrickType } from '../../brick-types/entities/brick-type.entity';
 import { ProductionLine } from 'src/production-lines/entities/production-line.entity';

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { ProductionStage } from './entities/production-stage.entity';
@@ -8,7 +8,7 @@ import { UpdateProductionStageStatusDto } from './dtos/update-production-stage-s
 import { ProductionLine } from '../production-lines/entities/production-line.entity';
 import { Position } from '../positions/entities/position.entity';
 import { ActivityLogService } from 'src/activity-log/activity-log.service';
-import { ActivityAction, ActivityEntityType, ActivitySource } from 'src/activity-log/entities/activity-log.enum';
+import { ActivityEntityType, ActivitySource } from 'src/activity-log/entities/activity-log.enum';
 import { LogDTO } from 'src/activity-log/dto/log.dto';
 import { ActivityStatus, ActivitySeverity } from 'src/activity-log/entities/activity-log.enum';
 import { BrickType } from '../brick-types/entities/brick-type.entity';
@@ -28,6 +28,13 @@ type DeviceSummary = {
     position?: number;
 };
 
+interface RunLoggingPayload {
+    quantity?: number;
+    area?: number;
+    endTime?: Date;
+    brickTypeId?: number;
+}
+
 export interface ProductionLineStagesResponse {
     stages: ProductionStage[];
     stageDeviceMap: Record<number, Record<number, DeviceSummary[]>>;
@@ -36,6 +43,15 @@ export interface ProductionLineStagesResponse {
 @Injectable()
 export class ProductionStagesService {
     private readonly logger = new Logger(ProductionStagesService.name);
+    private readonly stageCategoryKeywords: Record<StageCategory, string[]> = {
+        press: ['ép', 'press', 'acp'],
+        bisque: ['nung xương', 'nung', 'bisque'],
+        glaze: ['nung men', 'glaze'],
+        grind: ['mài', 'grind'],
+        packaging: ['đóng hộp', 'packing'],
+    };
+    // Set ENABLE_RUN_AUTO_LOGGING=false to disable automatic run logging without code changes.
+    private readonly autoRunLoggingEnabled = process.env.ENABLE_RUN_AUTO_LOGGING !== 'false';
 
     constructor(
         @InjectRepository(ProductionStage)
@@ -63,6 +79,7 @@ export class ProductionStagesService {
         private readonly mqttService: SimpleUniversalMqttService,
         private readonly mqttHandler: SimpleUniversalHandler,
         private readonly productionStageHistoryService: ProductionStageHistoryService,
+        private readonly productionLineRunsService: ProductionLineRunsService,
     ) { }
 
     async create(createDto: CreateProductionStageDto): Promise<ProductionStage> {
@@ -309,7 +326,7 @@ export class ProductionStagesService {
                 });
             }
             const runningNotes = this.buildHistoryNotes('running', stage.name, userName, updateStatusDto.notes);
-            await this.productionStageHistoryService.create({
+            latestHistory = await this.productionStageHistoryService.create({
                 stageId: stage.id,
                 productId: historyProductId,
                 productionLineId: stage.productionLineId,
@@ -317,6 +334,11 @@ export class ProductionStagesService {
                 notes: runningNotes,
                 createdByUsername: userName,
             });
+            await this.logRunStageStartIfNeeded(
+                stage,
+                latestHistory,
+                historyProductId ?? stage.productId ?? stage.productionLine?.activeBrickTypeId,
+            );
         } else if (updateStatusDto.status === 'waiting_log') {
             if (!latestHistory || latestHistory.endTime) {
                 latestHistory = await this.productionStageHistoryService.create({
@@ -368,6 +390,15 @@ export class ProductionStagesService {
                 pendingUpdate.productId = pendingProductId;
             }
             await this.productionStageHistoryService.update(latestHistory.id, pendingUpdate);
+
+            const resolvedBrickTypeId =
+                pendingProductId ?? stage.productId ?? stage.productionLine?.activeBrickTypeId;
+            await this.logRunStageCompletionIfNeeded(stage, latestHistory, {
+                quantity,
+                area,
+                endTime,
+                brickTypeId: resolvedBrickTypeId,
+            });
         } else if (stage.status === 'running' && updateStatusDto.status !== 'running') {
             if (latestHistory && !latestHistory.endTime) {
                 const genericNotes = this.buildHistoryNotes(updateStatusDto.status, stage.name, userName, updateStatusDto.notes);
@@ -572,6 +603,69 @@ export class ProductionStagesService {
         const tileArea = (width / 1000) * (height / 1000);
         const totalArea = quantity * tileArea;
         return Math.round(totalArea * 100) / 100;
+    }
+
+    private async logRunStageStartIfNeeded(
+        stage: ProductionStage,
+        history: ProductionStageHistory | null,
+        brickTypeId?: number,
+    ) {
+        if (!this.autoRunLoggingEnabled || !history) {
+            return;
+        }
+        const category = this.detectStageCategory(stage?.name);
+        if (!category || (category !== 'press' && category !== 'grind')) {
+            return;
+        }
+        await this.productionLineRunsService.registerStageStart({
+            productionLineId: stage.productionLineId,
+            stageCategory: category,
+            stageHistoryId: history.id,
+            stageId: stage.id,
+            stageName: stage.name,
+            startTime: history.startTime,
+            brickTypeId,
+        });
+    }
+
+    private async logRunStageCompletionIfNeeded(
+        stage: ProductionStage,
+        history: ProductionStageHistory | null,
+        payload: RunLoggingPayload,
+    ) {
+        if (!this.autoRunLoggingEnabled || !history) {
+            return;
+        }
+        const category = this.detectStageCategory(stage?.name);
+        if (!category) {
+            return;
+        }
+        await this.productionLineRunsService.registerStageCompletion({
+            productionLineId: stage.productionLineId,
+            stageCategory: category,
+            stageHistoryId: history.id,
+            stageId: stage.id,
+            stageName: stage.name,
+            startTime: history.startTime,
+            endTime: payload.endTime ?? history.endTime,
+            quantity: payload.quantity,
+            area: payload.area,
+            brickTypeId: payload.brickTypeId ?? stage.productId ?? stage.productionLine?.activeBrickTypeId,
+        });
+    }
+
+    private detectStageCategory(stageName?: string): StageCategory | null {
+        if (!stageName) {
+            return null;
+        }
+        const normalized = stageName.toLowerCase();
+        for (const key of Object.keys(this.stageCategoryKeywords) as StageCategory[]) {
+            const keywords = this.stageCategoryKeywords[key];
+            if (keywords.some(keyword => normalized.includes(keyword.toLowerCase()))) {
+                return key;
+            }
+        }
+        return null;
     }
 
 }

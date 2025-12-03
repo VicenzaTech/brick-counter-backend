@@ -7,6 +7,7 @@ import { BrickType } from '../../brick-types/entities/brick-type.entity';
 import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
 import { ProductionStage } from '../../production-stages/entities/production-stage.entity';
 import { ProductionStageHistory } from 'src/production-stage-history/entities/production-stage-history.entity';
+import { ProductionLineRun } from 'src/production-line-runs/entities/production-line-run.entity';
 
 @Entity('production_lines')
 export class ProductionLine {
@@ -55,5 +56,8 @@ export class ProductionLine {
     productionStages: ProductionStage[];
 
     @OneToMany(() => ProductionStageHistory, (history) => history.productionLine)
-    stageHistories: any[];
+    stageHistories: ProductionStageHistory[];
+
+    @OneToMany(() => ProductionLineRun, (run) => run.productionLine)
+    productionRuns: ProductionLineRun[];
 }

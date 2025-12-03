@@ -20,6 +20,7 @@ import { ProductionStageHistory } from 'src/production-stage-history/entities/pr
     TypeOrmModule.forFeature([ProductionStage, ProductionLine, Position, BrickType, DeviceCluster, Measurement, Device, ProductionStageHistory]),
     ActivityLogModule,
     ProductionStageHistoryModule,
+    ProductionLineRunsModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService): JwtModuleOptions => {
         const JWT_ACCESS_SECRET = configService.get<string>('JWT_ACCESS_SECRET')
