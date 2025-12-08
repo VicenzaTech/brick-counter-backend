@@ -19,21 +19,26 @@ import { UpdateProductionStageStatusDto } from './dtos/update-production-stage-s
 import { ProductionStage } from './entities/production-stage.entity';
 import { Req } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
-import { Request } from 'express';
+import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 import { User } from 'src/users/entities/user.entity';
+import { Permission } from 'src/auth/decorator/permission/permission.decorator';
+import { PERMISSIONS } from 'src/users/permission.constant';
 
 @ApiTags('production-stages')
 @Controller('production-stages')
+@UseGuards(AuthGuard, PermissionGuard)
 export class ProductionStagesController {
     constructor(private readonly stagesService: ProductionStagesService) { }
 
     @Post()
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_CREATE)
     @UsePipes(new ValidationPipe())
     async create(@Body() createDto: CreateProductionStageDto): Promise<ProductionStage> {
         return this.stagesService.create(createDto);
     }
 
     @Get()
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_READ)
     @ApiOperation({ summary: 'Get all production stages' })
     @ApiResponse({ status: 200, description: 'Return all production stages.', type: [ProductionStage] })
     async findAll(): Promise<ProductionStage[]> {
@@ -41,6 +46,7 @@ export class ProductionStagesController {
     }
 
     @Get(':id')
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_READ)
     @ApiOperation({ summary: 'Get a production stage by ID' })
     @ApiResponse({ status: 200, description: 'Return the production stage.', type: ProductionStage })
     @ApiResponse({ status: 404, description: 'Production stage not found.' })
@@ -49,6 +55,7 @@ export class ProductionStagesController {
     }
 
     @Get('by-production-line/:productionLineId')
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_READ)
     @ApiOperation({ summary: 'Get all production stages by production line ID' })
     @ApiResponse({ status: 200, description: 'Return production stages for the specified production line.', type: [ProductionStage] })
     async findByProductionLine(
@@ -58,6 +65,7 @@ export class ProductionStagesController {
     }
 
     @Put(':id')
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_UPDATE)
     @UsePipes(new ValidationPipe())
     @ApiOperation({ summary: 'Update a production stage' })
     @ApiResponse({ status: 200, description: 'The production stage has been successfully updated.', type: ProductionStage })
@@ -70,6 +78,7 @@ export class ProductionStagesController {
     }
 
     @Delete(':id')
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_DELETE)
     @ApiOperation({ summary: 'Delete a production stage' })
     @ApiResponse({ status: 200, description: 'The production stage has been successfully deleted.' })
     @ApiResponse({ status: 404, description: 'Production stage not found.' })
@@ -78,7 +87,7 @@ export class ProductionStagesController {
     }
 
     @Post('update-status')
-    @UseGuards(AuthGuard)
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_UPDATE)
     @UsePipes(new ValidationPipe())
     @ApiOperation({ summary: 'Update production stage status' })
     @ApiResponse({ status: 200, description: 'The production stage status has been successfully updated.', type: ProductionStage })
@@ -92,6 +101,7 @@ export class ProductionStagesController {
     }
 
     @Get('by-production-line-id/:productionLineId')
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_READ)
     @ApiOperation({ summary: 'Get production stages by production line ID' })
     @ApiResponse({
         status: 200,
@@ -109,6 +119,7 @@ export class ProductionStagesController {
     }
 
     @Get(':id/final-count')
+    @Permission(PERMISSIONS.PRODUCTION_STAGE_READ)
     @ApiOperation({ summary: 'Get final production count for a stage (for chốt sản lượng)' })
     @ApiResponse({
         status: 200,

@@ -17,10 +17,11 @@ import { DevicesModule } from '../devices/devices.module';
 import { SimpleUniversalMqttService } from './services/simple-universal-mqtt.service';
 import { SimpleUniversalMqttModule } from './simple-universal-mqtt.module';
 import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Global()
 @Module({
-    imports: [ConfigModule, DevicesModule, SimpleUniversalMqttModule, TypeOrmModule.forFeature([ProductionLine, DeviceCluster])],
+    imports: [ConfigModule, DevicesModule, SimpleUniversalMqttModule, TypeOrmModule.forFeature([ProductionLine, DeviceCluster]), AuthModule],
     controllers: [MqttController, DeviceCommandController],
     providers: [
         // Redis client provider

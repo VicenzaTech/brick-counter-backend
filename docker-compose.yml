@@ -28,7 +28,7 @@ services:
       DB_DATABASE: brick-counter-dev
       DB_SYNCHRONIZE: false'
       DB_LOGGING: 'false'
-      COOKIE_DOMAIN: vicenzatech.online
+      COOKIE_DOMAIN: localhost
 
 
       # Hash Config

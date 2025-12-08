@@ -1,7 +1,12 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { AnalyticsSubscriberService } from './analytics-subscriber.service';
+import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
+import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
+import { Permission } from 'src/auth/decorator/permission/permission.decorator';
+import { PERMISSIONS } from 'src/users/permission.constant';
 
 @Controller('analytics')
+@UseGuards(AuthGuard, PermissionGuard)
 export class AnalyticsController {
   constructor(
     private readonly analyticsService: AnalyticsSubscriberService,
@@ -11,6 +16,7 @@ export class AnalyticsController {
    * Get all production lines metrics
    */
   @Get('lines')
+  @Permission(PERMISSIONS.ANALYTICS_READ)
   getAllLines() {
     return {
       success: true,
@@ -22,6 +28,7 @@ export class AnalyticsController {
    * Get specific production line metrics
    */
   @Get('lines/:lineName')
+  @Permission(PERMISSIONS.ANALYTICS_READ)
   getLine(@Param('lineName') lineName: string) {
     const metrics = this.analyticsService.getLineMetrics(lineName);
     
@@ -42,6 +49,7 @@ export class AnalyticsController {
    * Get specific device metrics
    */
   @Get('devices/:deviceId')
+  @Permission(PERMISSIONS.ANALYTICS_READ)
   getDevice(@Param('deviceId') deviceId: string) {
     const metrics = this.analyticsService.getDeviceMetrics(deviceId);
     
@@ -62,6 +70,7 @@ export class AnalyticsController {
    * Get aggregate metrics
    */
   @Get('aggregate')
+  @Permission(PERMISSIONS.ANALYTICS_READ)
   getAggregate() {
     const metrics = this.analyticsService.getAggregateMetrics();
     

@@ -1,8 +1,8 @@
 
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, FindOptionsWhere, IsNull } from 'typeorm';
+import { Repository, Between, FindOptionsWhere, IsNull, Not } from 'typeorm';
 import { ProductionStageHistory } from './entities/production-stage-history.entity';
 import { CreateProductionStageHistoryDto } from './dtos/create-production-stage-history.dto';
 import { UpdateProductionStageHistoryDto } from './dtos/update-production-stage-history.dto';
@@ -27,7 +27,7 @@ export class ProductionStageHistoryService {
         startDate?: Date,
         endDate?: Date,
         stopReason?: StopReason,
-    ): Promise<{ data: ProductionStageHistory[]; total: number }> {
+    ): Promise<{ pagidata: ProductionStageHistory[]; meta: { total: number } }> {
         const where: FindOptionsWhere<ProductionStageHistory> = {};
 
         if (stageId) {
@@ -44,7 +44,7 @@ export class ProductionStageHistoryService {
             where.stopReason = stopReason;
         }
 
-        const [data, total] = await this.historyRepository.findAndCount({
+        const [pagidata, total] = await this.historyRepository.findAndCount({
             where,
             relations: ['stage', 'product'],
             skip: (page - 1) * limit,
@@ -52,7 +52,7 @@ export class ProductionStageHistoryService {
             order: { startTime: 'DESC' },
         });
 
-        return { data, total };
+        return { pagidata, meta: { total } };
     }
 
     async findOne(id: number): Promise<ProductionStageHistory> {
@@ -78,6 +78,55 @@ export class ProductionStageHistoryService {
             take: 50,
         });
     }
+
+    async findStageByProductionLineWithFilter(
+        startDate?: Date,
+        endDate?: Date,
+        stageName?: string,
+        productionLineId: string = 'all',
+    ): Promise<{ pagidata: ProductionStageHistory[]; meta: { total: number } }> {
+
+        if (!productionLineId) {
+            throw new BadRequestException('productionLineId is required');
+        }
+
+        const where: FindOptionsWhere<ProductionStageHistory> = {
+            quantity: Not(IsNull())
+        };
+
+        // -------- TIME RANGE --------
+        if (startDate && endDate) {
+            where.startTime = Between(startDate, endDate);
+        } else if (startDate) {
+            where.startTime = Between(startDate, new Date());
+        }
+
+        // -------- RELATION FILTER BLOCK --------
+        const stageWhere: any = {};
+
+        if (stageName) {
+            stageWhere.name = stageName; // filter theo tên stage
+        }
+
+        if (productionLineId !== 'all') {
+            stageWhere.productionLine = { id: Number(productionLineId) };
+        }
+
+        // chỉ set if có filter thực sự
+        if (Object.keys(stageWhere).length > 0) {
+            where.stage = stageWhere;
+        }
+
+        // -------- QUERY --------
+        const [pagidata, total] = await this.historyRepository.findAndCount({
+            where,
+            relations: ['stage', 'product', 'productionLine'],
+            order: { startTime: 'DESC' },
+        });
+
+        return { pagidata, meta: { total } };
+    }
+
 
     async update(
         id: number,
@@ -111,9 +160,9 @@ export class ProductionStageHistoryService {
 
     async getLatestStageHistory(stageId: number): Promise<ProductionStageHistory | null> {
         return await this.historyRepository.findOne({
-            where: { 
-                stageId, 
-                endTime: IsNull() 
+            where: {
+                stageId,
+                endTime: IsNull()
             },
             order: { startTime: 'DESC' },
         });
