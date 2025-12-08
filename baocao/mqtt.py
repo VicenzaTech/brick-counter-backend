@@ -14,7 +14,7 @@ from datetime import datetime
 # CONFIGURATION
 # =====================================
 # MQTT_BROKER = "192.168.221.4"
-MQTT_BROKER = "localhost"
+MQTT_BROKER = "127.0.0.1"
 MQTT_PORT = 1883
 MQTT_USERNAME = None  # Set if authentication is required
 MQTT_PASSWORD = None
@@ -158,7 +158,7 @@ def main():
                 # Publish message
                 payload = json.dumps(telemetry)
                 result = client.publish(topic, payload, qos=1)
-                
+                print("TOPIC : ",topic)
                 # Check if publish was successful
                 if result.rc == mqtt.MQTT_ERR_SUCCESS:
                     print(f"✅ {device_id:20} → Total: {telemetry['metrics']['total']:5} | RSSI: {telemetry['quality']['rssi']:3} dBm | Topic: {topic}")

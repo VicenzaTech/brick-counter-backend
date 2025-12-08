@@ -16,7 +16,7 @@ services:
       REDIS_PORT: 6379
 
       # MQTT config
-      MQTT_HOST: mosquitto
+      MQTT_HOST: 192.168.221.4
       MQTT_PORT: 1883
 
       # Database config (TypeORM) - Use Docker Postgres container
@@ -26,8 +26,10 @@ services:
       DB_USERNAME: admin
       DB_PASSWORD: 123456
       DB_DATABASE: brick-counter-dev
-      DB_SYNCHRONIZE: 'false'
+      DB_SYNCHRONIZE: false'
       DB_LOGGING: 'false'
+      COOKIE_DOMAIN: vicenzatech.online
+
 
       # Hash Config
       HASH_ROUNDS: 12
@@ -50,7 +52,7 @@ services:
 
     depends_on:
       - redis
-      - mosquitto
+      # - mosquitto
       - postgres
 
   postgres:
@@ -89,15 +91,15 @@ services:
       timeout: 5s
       retries: 5
 
-  mosquitto:
-    image: eclipse-mosquitto:2.0
-    container_name: tile-mosquitto
-    restart: unless-stopped
-    ports:
-      - '1883:1883'
-      - '9001:9001'
-    volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+  # mosquitto:
+  #   image: eclipse-mosquitto:2.0
+  #   container_name: tile-mosquitto
+  #   restart: unless-stopped
+  #   ports:
+  #     - '1883:1883'
+  #     - '9001:9001'
+  #   volumes:
+  #     - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
 
   # python-analytics:
   #   build:

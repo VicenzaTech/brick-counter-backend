@@ -15,6 +15,7 @@ import { Measurement } from '../measurement/entities/measurement.entity';
 import { Device } from '../devices/entities/device.entity';
 import { ProductionStageHistoryModule } from '../production-stage-history/production-stage-history.module';
 import { ProductionStageHistory } from 'src/production-stage-history/entities/production-stage-history.entity';
+import { ProductionLineRunsModule } from 'src/production-line-runs/production-line-runs.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([ProductionStage, ProductionLine, Position, BrickType, DeviceCluster, Measurement, Device, ProductionStageHistory]),

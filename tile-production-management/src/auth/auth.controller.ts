@@ -32,11 +32,14 @@ export class AuthController {
             httpOnly: true,
             secure: true,
             maxAge: expired_ms,
+            domain: this.configService.get('COOKIE_DOMAIN') || undefined,
         })
         res.cookie(COOKIE_KEY.SESSION_ID_KEY, loginData.sessionId, {
             httpOnly: true,
             secure: true,
             maxAge: expired_ms,
+            domain: this.configService.get('COOKIE_DOMAIN') || undefined,
+
         })
         return {
             data: loginData,
@@ -69,10 +72,14 @@ export class AuthController {
         }
         res.clearCookie(COOKIE_KEY.REFRESH_TOKEN_KEY, {
             httpOnly: true,
-        })
+            secure: true,
+            domain: this.configService.get('COOKIE_DOMAIN') || undefined,
+        });
         res.clearCookie(COOKIE_KEY.SESSION_ID_KEY, {
             httpOnly: true,
-        })
+            secure: true,
+            domain: this.configService.get('COOKIE_DOMAIN') || undefined,
+        });
         return {
             data: logoutData,
             log: {
@@ -88,9 +95,16 @@ export class AuthController {
 
     @Post('/logout/force')
     async forceLogout(@Body() body: any, @Res({ passthrough: true }) res: Response): Promise<LoggedResponse<any>> {
-        res.clearCookie(COOKIE_KEY.REFRESH_TOKEN_KEY, { httpOnly: true });
-        res.clearCookie(COOKIE_KEY.SESSION_ID_KEY, { httpOnly: true });
-
+        res.clearCookie(COOKIE_KEY.REFRESH_TOKEN_KEY, {
+            httpOnly: true,
+            secure: true,
+            domain: this.configService.get('COOKIE_DOMAIN') || undefined,
+        });
+        res.clearCookie(COOKIE_KEY.SESSION_ID_KEY, {
+            httpOnly: true,
+            secure: true,
+            domain: this.configService.get('COOKIE_DOMAIN') || undefined,
+        });
         return {
             data: "ok",
         }
@@ -107,7 +121,12 @@ export class AuthController {
         const refreshData = await this.authService.refresh(user, refreshToken, sessionId)
         const { tokens } = refreshData
         const expired_ms = Number((ms(expired)))
-        res.cookie[COOKIE_KEY.REFRESH_TOKEN_KEY] = tokens.refreshtoken
+        res.cookie(COOKIE_KEY.REFRESH_TOKEN_KEY, refreshData.tokens.refreshtoken, {
+            httpOnly: true,
+            secure: true,
+            maxAge: expired_ms,
+            domain: this.configService.get('COOKIE_DOMAIN') || undefined,
+        })
         return {
             data: refreshData,
         }

@@ -20,7 +20,8 @@ import { Measurement } from '../measurement/entities/measurement.entity';
 import { Device } from '../devices/entities/device.entity';
 import { ProductionStageHistoryService } from 'src/production-stage-history/production-stage-history.service';
 import { StopReason, ProductionStageHistory } from 'src/production-stage-history/entities/production-stage-history.entity';
-
+import { StageCategory } from 'src/production-line-runs/production-line-runs.service';
+import { ProductionLineRunsService } from 'src/production-line-runs/production-line-runs.service';
 type DeviceSummary = {
     id: number;
     deviceId: string;
