@@ -5,6 +5,7 @@ import { ProductionLineRun } from './entities/production-line-run.entity';
 import { CreateProductionLineRunDto } from './dtos/create-production-line-run.dto';
 import { UpdateProductionLineRunDto } from './dtos/update-production-line-run.dto';
 import { QueryProductionLineRunDto } from './dtos/query-production-line-run.dto';
+import { ProductionRecord } from 'src/runs-analytics/types/record.type';
 
 export type StageCategory = 'press' | 'bisque' | 'glaze' | 'grind' | 'packaging';
 
@@ -323,5 +324,74 @@ export class ProductionLineRunsService {
             return undefined;
         }
         return Math.round((output / input) * 10000) / 100;
+    }
+
+
+    async analyticsRuns(productionLineId: 'all' | string, fromDate: Date, toDate: Date): Promise<ProductionRecord[]> {
+        const qb = this.runRepository
+            .createQueryBuilder('run')
+            .leftJoin('run.productionLine', 'line')
+            .leftJoin('run.brickType', 'brickType')
+            .where('COALESCE(run.endTime, run.startTime) BETWEEN :fromDate AND :toDate', { fromDate, toDate })
+            .orderBy('COALESCE(run.endTime, run.startTime)', 'ASC')
+            .select('run.id', 'run_id')
+            .addSelect('run.startTime', 'run_start_time')
+            .addSelect('run.endTime', 'run_end_time')
+            .addSelect('run.totalPieces', 'run_total_pieces')
+            .addSelect('run.a1Pieces', 'run_a1_pieces')
+            .addSelect('run.a2Pieces', 'run_a2_pieces')
+            .addSelect('run.cutLoPieces', 'run_cut_lo_pieces')
+            .addSelect('run.phe1Pieces', 'run_phe1_pieces')
+            .addSelect('run.phe2Pieces', 'run_phe2_pieces')
+            .addSelect('run.pheHuyPieces', 'run_phe_huy_pieces')
+            .addSelect('line.name', 'line_name')
+            .addSelect('brickType.name', 'brick_type_name');
+
+        if (productionLineId !== 'all') {
+            qb.andWhere('run.productionLineId = :productionLineId', { productionLineId: Number(productionLineId) });
+        }
+
+        const rows = await qb.getRawMany();
+
+        return rows.map((row) => {
+            const totalPieces = this.resolveNumber(row.run_total_pieces, 0);
+            const a1Pieces = this.resolveNumber(row.run_a1_pieces, 0);
+            const a2Pieces = this.resolveNumber(row.run_a2_pieces, 0);
+            const cutLoPieces = this.resolveNumber(row.run_cut_lo_pieces, 0);
+            const phe1Pieces = this.resolveNumber(row.run_phe1_pieces, 0);
+            const phe2Pieces = this.resolveNumber(row.run_phe2_pieces, 0);
+            const pheHuyPieces = this.resolveNumber(row.run_phe_huy_pieces, 0);
+            const outputDate = row.run_end_time ?? row.run_start_time;
+            const date = outputDate ? new Date(outputDate).toISOString().split('T')[0] : '';
+
+            const wasteMoc = totalPieces > 0 ? Math.round(((phe1Pieces + phe2Pieces) / totalPieces) * 10000) / 100 : 0;
+            const wasteLo = totalPieces > 0 ? Math.round((cutLoPieces / totalPieces) * 10000) / 100 : 0;
+            const wasteTruocMai =
+                totalPieces > 0
+                    ? Math.round(((phe1Pieces + phe2Pieces + cutLoPieces) / totalPieces) * 10000) / 100
+                    : 0;
+            const wasteThanhPham =
+                totalPieces > 0
+                    ? Math.round(((phe1Pieces + phe2Pieces + cutLoPieces + pheHuyPieces) / totalPieces) * 10000) / 100
+                    : 0;
+
+            return {
+                key: `${row.run_id}`,
+                date,
+                lineName: row.line_name ?? 'Unknown line',
+                productType: row.brick_type_name ?? 'Unknown',
+                originalOutput: totalPieces,
+                a1: a1Pieces,
+                a2: a2Pieces,
+                cut: cutLoPieces,
+                waste1: phe1Pieces,
+                waste2: phe2Pieces,
+                scrap: pheHuyPieces,
+                waste_moc: wasteMoc,
+                waste_lo: wasteLo,
+                waste_truoc_mai: wasteTruocMai,
+                waste_thanh_pham: wasteThanhPham,
+            };
+        });
     }
 }
