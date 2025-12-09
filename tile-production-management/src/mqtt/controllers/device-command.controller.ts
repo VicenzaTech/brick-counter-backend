@@ -1,9 +1,14 @@
-import { Controller, Post, Param, Body, Logger, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Param, Body, Logger, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { DeviceCommandService, CommandResponse } from '../services/device-command.service';
 import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 import { LoggedResponse } from 'src/common/type/log.response';
+import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
+import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
+import { Permission } from 'src/auth/decorator/permission/permission.decorator';
+import { PERMISSIONS } from 'src/users/permission.constant';
 
 @Controller('mqtt/device-command')
+@UseGuards(AuthGuard, PermissionGuard)
 export class DeviceCommandController {
   private readonly logger = new Logger(DeviceCommandController.name);
 
@@ -14,6 +19,7 @@ export class DeviceCommandController {
    * POST /mqtt/device-command/reset-line/1
    */
   @Post('reset-counter/:clusterId')
+  @Permission(PERMISSIONS.DEVICE_COMMAND_EXECUTE)
   async resetCounterCluster(
     @Param('clusterId', ParseIntPipe) clusterId: number,
   ): Promise<LoggedResponse<CommandResponse>> {
@@ -36,6 +42,7 @@ export class DeviceCommandController {
    * POST /mqtt/device-command/reset-line/1
    */
   @Post('reset-line/:lineId')
+  @Permission(PERMISSIONS.DEVICE_COMMAND_EXECUTE)
   async resetLine(
     @Param('lineId', ParseIntPipe) lineId: number,
   ): Promise<LoggedResponse<CommandResponse>> {
@@ -58,6 +65,7 @@ export class DeviceCommandController {
    * POST /mqtt/device-command/reset-device/SAU-ME-01
    */
   @Post('reset-device/:deviceId')
+  @Permission(PERMISSIONS.DEVICE_COMMAND_EXECUTE)
   async resetDevice(
     @Param('deviceId') deviceId: string,
   ): Promise<LoggedResponse<CommandResponse>> {
@@ -81,6 +89,7 @@ export class DeviceCommandController {
    * Body: { value: number }
    */
   @Post('set-device/:deviceId')
+  @Permission(PERMISSIONS.DEVICE_COMMAND_EXECUTE)
   async setDevice(
     @Param('deviceId') deviceId: string,
     @Body('value', ParseIntPipe) value: number,
@@ -105,6 +114,7 @@ export class DeviceCommandController {
    * POST /mqtt/device-command/emergency-stop/1
    */
   @Post('emergency-stop/:lineId')
+  @Permission(PERMISSIONS.DEVICE_COMMAND_EXECUTE)
   async emergencyStop(
     @Param('lineId', ParseIntPipe) lineId: number,
   ): Promise<LoggedResponse<CommandResponse>> {
@@ -128,6 +138,7 @@ export class DeviceCommandController {
    * Body: { interval: number } - Telemetry interval in seconds (5, 10, 15, 30, 60)
    */
   @Post('config-device/:deviceId')
+  @Permission(PERMISSIONS.DEVICE_COMMAND_EXECUTE)
   async configDevice(
     @Param('deviceId') deviceId: string,
     @Body('interval', ParseIntPipe) interval: number,
@@ -153,6 +164,7 @@ export class DeviceCommandController {
    * Body: { interval: number } - Telemetry interval in seconds (5, 10, 15, 30, 60)
    */
   @Post('config-line/:lineId')
+  @Permission(PERMISSIONS.DEVICE_COMMAND_EXECUTE)
   async configLine(
     @Param('lineId', ParseIntPipe) lineId: number,
     @Body('interval', ParseIntPipe) interval: number,

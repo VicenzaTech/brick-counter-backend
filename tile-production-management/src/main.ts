@@ -5,13 +5,8 @@ import { ProductionLine } from './production-lines/entities/production-line.enti
 import { ProductionStage } from './production-stages/entities/production-stage.entity';
 import { Position } from './positions/entities/position.entity';
 import cookieParser from 'cookie-parser';
-import type { DeviceExtraInfo } from './common/mqtt/device-extra-info';
-import { ValidationPipe } from '@nestjs/common';
 import { Measurement } from 'src/measurement/entities/measurement.entity';
 import { MeasurementType } from 'src/measurement-types/entities/measurement-types.entity';
-import { DeviceCluster } from 'src/device-clusters/entities/device-cluster.entity';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as bcrypt from 'bcrypt';
 
 const newBrickTypes = {
@@ -1160,6 +1155,22 @@ const PERMISSIONS = {
     BRICK_TYPE_UPDATE: 'brick-type.update',
     BRICK_TYPE_DELETE: 'brick-type.delete',
 
+    // Production flow tracking
+    PRODUCTION_STAGE_READ: 'production-stage.read',
+    PRODUCTION_STAGE_CREATE: 'production-stage.create',
+    PRODUCTION_STAGE_UPDATE: 'production-stage.update',
+    PRODUCTION_STAGE_DELETE: 'production-stage.delete',
+
+    PRODUCTION_STAGE_HISTORY_READ: 'production-stage-history.read',
+    PRODUCTION_STAGE_HISTORY_CREATE: 'production-stage-history.create',
+    PRODUCTION_STAGE_HISTORY_UPDATE: 'production-stage-history.update',
+    PRODUCTION_STAGE_HISTORY_DELETE: 'production-stage-history.delete',
+
+    PRODUCTION_LINE_RUN_READ: 'production-line-run.read',
+    PRODUCTION_LINE_RUN_CREATE: 'production-line-run.create',
+    PRODUCTION_LINE_RUN_UPDATE: 'production-line-run.update',
+    PRODUCTION_LINE_RUN_DELETE: 'production-line-run.delete',
+
     // Metrics & quotas
     PRODUCTION_METRIC_READ: 'production-metric.read',
     PRODUCTION_METRIC_CREATE: 'production-metric.create',
@@ -1176,6 +1187,13 @@ const PERMISSIONS = {
     MAINTENANCE_LOG_CREATE: 'maintenance-log.create',
     MAINTENANCE_LOG_UPDATE: 'maintenance-log.update',
     MAINTENANCE_LOG_DELETE: 'maintenance-log.delete',
+
+    // Monitoring & analytics
+    ANALYTICS_READ: 'analytics.read',
+    MQTT_READ: 'mqtt.read',
+    MQTT_PUBLISH: 'mqtt.publish',
+    DEVICE_COMMAND_EXECUTE: 'device-command.execute',
+    ACTIVITY_LOG_READ: 'activity-log.read',
 };
 
 const PERMISSION_DEFINITIONS = [
@@ -1225,6 +1243,22 @@ const PERMISSION_DEFINITIONS = [
     { code: PERMISSIONS.BRICK_TYPE_UPDATE, description: 'Update brick types' },
     { code: PERMISSIONS.BRICK_TYPE_DELETE, description: 'Delete brick types' },
 
+    // Production flow tracking
+    { code: PERMISSIONS.PRODUCTION_STAGE_READ, description: 'Read production stages' },
+    { code: PERMISSIONS.PRODUCTION_STAGE_CREATE, description: 'Create production stages' },
+    { code: PERMISSIONS.PRODUCTION_STAGE_UPDATE, description: 'Update production stages' },
+    { code: PERMISSIONS.PRODUCTION_STAGE_DELETE, description: 'Delete production stages' },
+
+    { code: PERMISSIONS.PRODUCTION_STAGE_HISTORY_READ, description: 'Read production stage history' },
+    { code: PERMISSIONS.PRODUCTION_STAGE_HISTORY_CREATE, description: 'Create production stage history' },
+    { code: PERMISSIONS.PRODUCTION_STAGE_HISTORY_UPDATE, description: 'Update production stage history' },
+    { code: PERMISSIONS.PRODUCTION_STAGE_HISTORY_DELETE, description: 'Delete production stage history' },
+
+    { code: PERMISSIONS.PRODUCTION_LINE_RUN_READ, description: 'Read production line runs' },
+    { code: PERMISSIONS.PRODUCTION_LINE_RUN_CREATE, description: 'Create production line runs' },
+    { code: PERMISSIONS.PRODUCTION_LINE_RUN_UPDATE, description: 'Update production line runs' },
+    { code: PERMISSIONS.PRODUCTION_LINE_RUN_DELETE, description: 'Delete production line runs' },
+
     // Metrics & quotas
     { code: PERMISSIONS.PRODUCTION_METRIC_READ, description: 'Read production metrics' },
     { code: PERMISSIONS.PRODUCTION_METRIC_CREATE, description: 'Create production metrics' },
@@ -1241,6 +1275,13 @@ const PERMISSION_DEFINITIONS = [
     { code: PERMISSIONS.MAINTENANCE_LOG_CREATE, description: 'Create maintenance logs' },
     { code: PERMISSIONS.MAINTENANCE_LOG_UPDATE, description: 'Update maintenance logs' },
     { code: PERMISSIONS.MAINTENANCE_LOG_DELETE, description: 'Delete maintenance logs' },
+
+    // Monitoring & analytics
+    { code: PERMISSIONS.ANALYTICS_READ, description: 'Read analytics metrics' },
+    { code: PERMISSIONS.MQTT_READ, description: 'Monitor MQTT status' },
+    { code: PERMISSIONS.MQTT_PUBLISH, description: 'Send MQTT test messages' },
+    { code: PERMISSIONS.DEVICE_COMMAND_EXECUTE, description: 'Execute device commands' },
+    { code: PERMISSIONS.ACTIVITY_LOG_READ, description: 'Read activity logs' },
 ];
 
 const PERMISSION_GROUPS = {
@@ -1293,6 +1334,24 @@ const PERMISSION_GROUPS = {
         PERMISSIONS.BRICK_TYPE_UPDATE,
         PERMISSIONS.BRICK_TYPE_DELETE,
     ],
+    PRODUCTION_STAGE_MANAGE: [
+        PERMISSIONS.PRODUCTION_STAGE_READ,
+        PERMISSIONS.PRODUCTION_STAGE_CREATE,
+        PERMISSIONS.PRODUCTION_STAGE_UPDATE,
+        PERMISSIONS.PRODUCTION_STAGE_DELETE,
+    ],
+    PRODUCTION_STAGE_HISTORY_MANAGE: [
+        PERMISSIONS.PRODUCTION_STAGE_HISTORY_READ,
+        PERMISSIONS.PRODUCTION_STAGE_HISTORY_CREATE,
+        PERMISSIONS.PRODUCTION_STAGE_HISTORY_UPDATE,
+        PERMISSIONS.PRODUCTION_STAGE_HISTORY_DELETE,
+    ],
+    PRODUCTION_LINE_RUN_MANAGE: [
+        PERMISSIONS.PRODUCTION_LINE_RUN_READ,
+        PERMISSIONS.PRODUCTION_LINE_RUN_CREATE,
+        PERMISSIONS.PRODUCTION_LINE_RUN_UPDATE,
+        PERMISSIONS.PRODUCTION_LINE_RUN_DELETE,
+    ],
     PRODUCTION_METRIC_MANAGE: [
         PERMISSIONS.PRODUCTION_METRIC_READ,
         PERMISSIONS.PRODUCTION_METRIC_CREATE,
@@ -1310,6 +1369,19 @@ const PERMISSION_GROUPS = {
         PERMISSIONS.MAINTENANCE_LOG_CREATE,
         PERMISSIONS.MAINTENANCE_LOG_UPDATE,
         PERMISSIONS.MAINTENANCE_LOG_DELETE,
+    ],
+    ANALYTICS_VIEW: [
+        PERMISSIONS.ANALYTICS_READ,
+    ],
+    MQTT_OPERATIONS: [
+        PERMISSIONS.MQTT_READ,
+        PERMISSIONS.MQTT_PUBLISH,
+    ],
+    DEVICE_COMMAND_MANAGE: [
+        PERMISSIONS.DEVICE_COMMAND_EXECUTE,
+    ],
+    ACTIVITY_LOG_VIEW: [
+        PERMISSIONS.ACTIVITY_LOG_READ,
     ],
 };
 
@@ -1329,11 +1401,19 @@ const ROLE_DEFINITIONS = {
             ...PERMISSION_GROUPS.PRODUCTION_LINE_MANAGE,
             ...PERMISSION_GROUPS.POSITION_MANAGE,
             ...PERMISSION_GROUPS.DEVICE_MANAGE,
-            ...PERMISSION_GROUPS.BRICK_TYPE_MANAGE,
             ...PERMISSION_GROUPS.PRODUCTION_MANAGE,
+            ...PERMISSION_GROUPS.PRODUCTION_STAGE_MANAGE,
+            ...PERMISSION_GROUPS.PRODUCTION_STAGE_HISTORY_MANAGE,
+            ...PERMISSION_GROUPS.PRODUCTION_LINE_RUN_MANAGE,
             ...PERMISSION_GROUPS.PRODUCTION_METRIC_MANAGE,
             ...PERMISSION_GROUPS.QUOTA_TARGET_MANAGE,
             ...PERMISSION_GROUPS.MAINTENANCE_LOG_MANAGE,
+            ...PERMISSION_GROUPS.ANALYTICS_VIEW,
+            ...PERMISSION_GROUPS.MQTT_OPERATIONS,
+            ...PERMISSION_GROUPS.DEVICE_COMMAND_MANAGE,
+            ...PERMISSION_GROUPS.ACTIVITY_LOG_VIEW,
+            // ADMIN JUST READ BRICK TYPES
+            PERMISSIONS.BRICK_TYPE_READ,
         ],
     },
     operator: {
@@ -1346,9 +1426,13 @@ const ROLE_DEFINITIONS = {
             PERMISSIONS.DEVICE_READ,
             PERMISSIONS.BRICK_TYPE_READ,
             PERMISSIONS.PRODUCTION_READ,
+            PERMISSIONS.PRODUCTION_STAGE_READ,
+            PERMISSIONS.PRODUCTION_STAGE_HISTORY_READ,
+            PERMISSIONS.PRODUCTION_LINE_RUN_READ,
             PERMISSIONS.PRODUCTION_METRIC_READ,
             PERMISSIONS.QUOTA_TARGET_READ,
             PERMISSIONS.MAINTENANCE_LOG_READ,
+            PERMISSIONS.ANALYTICS_READ,
             PERMISSIONS.PRODUCTION_UPDATE,
             PERMISSIONS.PRODUCTION_METRIC_CREATE,
             PERMISSIONS.PRODUCTION_METRIC_UPDATE,
@@ -1467,8 +1551,8 @@ async function bootstrap() {
     app.setGlobalPrefix('api');
     const allowedOrigins = [
         // Development
-        // 'http://localhost:3000',
-        // 'http://localhost:3001',
+        'http://localhost:3000',
+        'http://localhost:3001',
         // 'http://localhost:19006',  // Expo Web
         // 'http://localhost:19000',  // Expo dev client
         'https://vicenzatech.online',

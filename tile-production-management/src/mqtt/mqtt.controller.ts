@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Logger, UseGuards } from '@nestjs/common';
 import { SimpleUniversalMqttService } from './services/simple-universal-mqtt.service';
 import { ActivityAction, ActivityEntityType } from 'src/activity-log/entities/activity-log.enum';
 import type { LoggedResponse } from 'src/common/type/log.response';
+import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 
 @Controller('mqtt')
+@UseGuards(AuthGuard)
 export class MqttController {
   private readonly logger = new Logger(MqttController.name);
 

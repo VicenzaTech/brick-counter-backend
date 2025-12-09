@@ -15,6 +15,7 @@ import { Device } from '../devices/entities/device.entity';
 import { MqttController } from './mqtt.controller';
 import { MeasurementModule } from '../measurement/measurement.module';
 import { Measurement } from '../measurement/entities/measurement.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Global()
 @Module({
@@ -22,6 +23,7 @@ import { Measurement } from '../measurement/entities/measurement.entity';
     ConfigModule,
     TypeOrmModule.forFeature([Device, Measurement]),
     MeasurementModule,
+    AuthModule
   ],
   providers: [
     SimpleUniversalHandler,
