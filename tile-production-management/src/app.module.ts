@@ -56,6 +56,7 @@ import { ProductionStageHistoryModule } from './production-stage-history/product
 import { ProductionStageHistory } from './production-stage-history/entities/production-stage-history.entity';
 import { ProductionLineRun } from './production-line-runs/entities/production-line-run.entity';
 import { ProductionLineRunsModule } from './production-line-runs/production-line-runs.module';
+import { RunsAnalyticsModule } from './runs-analytics/runs-analytics.module';
 @Module({
     imports: [
         // Config module for environment variables
@@ -141,6 +142,7 @@ import { ProductionLineRunsModule } from './production-line-runs/production-line
         ProductionStagesModule,
         ProductionStageHistoryModule,
         ProductionLineRunsModule,
+        RunsAnalyticsModule,
     ],
     providers: [
         {

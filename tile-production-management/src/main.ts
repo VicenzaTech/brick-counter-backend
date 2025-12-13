@@ -1568,7 +1568,7 @@ async function bootstrap() {
         // 'https://api.yourapp.com'
     ];
     app.enableCors({
-        origin: allowedOrigins,
+        origin: true,
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
         allowedHeaders: [
@@ -1591,7 +1591,7 @@ async function bootstrap() {
         ],
         maxAge: 86400,
         // preflightContinue: false,
-        optionsSuccessStatus: 204
+        optionsSuccessStatus: 204,
     });
 
 
