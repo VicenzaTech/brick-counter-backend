@@ -9,10 +9,12 @@ import {
     HttpCode,
     HttpStatus,
     UseGuards,
+    Query,
 } from '@nestjs/common';
 import { BrickTypesService } from './brick-types.service';
 import { CreateBrickTypeDto } from './dtos/create-brick-type.dto';
 import { UpdateBrickTypeDto } from './dtos/update-brick-type.dto';
+import { GetStatisticsDto, GetTrendDto, CompareBrickTypesDto } from './dtos/statistics.dto';
 import type { BrickType } from './entities/brick-type.entity';
 import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { Permission } from 'src/auth/decorator/permission/permission.decorator';
@@ -133,6 +135,32 @@ export class BrickTypesController {
                 entityName: brickType.name,
             },
         };
+    }
+
+    @Get(':id/statistics')
+    @Permission(PERMISSIONS.BRICK_TYPE_READ)
+    async getStatistics(
+        @Param('id') id: string,
+        @Query() query: GetStatisticsDto,
+    ): Promise<any> {
+        return this.brickTypesService.getStatistics(+id, query);
+    }
+
+    @Get(':id/trend')
+    @Permission(PERMISSIONS.BRICK_TYPE_READ)
+    async getTrend(
+        @Param('id') id: string,
+        @Query() query: GetTrendDto,
+    ): Promise<any> {
+        return this.brickTypesService.getTrend(+id, query);
+    }
+
+    @Post('compare')
+    @Permission(PERMISSIONS.BRICK_TYPE_READ)
+    async compareBrickTypes(
+        @Body() dto: CompareBrickTypesDto,
+    ): Promise<any> {
+        return this.brickTypesService.compareBrickTypes(dto);
     }
 }
 
