@@ -65,6 +65,42 @@ export class BrickType {
   @Column({ type: 'int', nullable: true })
   reducedContractWhenIncreasingCycle?: number; // Giảm khoán khi Tăng chu kỳ (m²/ngày)
 
+  // CSV Standard Fields - Thong tin san pham
+  @Column({ type: 'text', nullable: true })
+  nameEnglish?: string; // Ten san pham (Tieng Anh)
+
+  @Column({ type: 'decimal', precision: 4, scale: 1, nullable: true })
+  thickness?: number; // Do day (mm)
+
+  @Column({ type: 'text', nullable: true })
+  brickType?: string; // Loai gach: Granite, Porcelain, Ceramic...
+
+  // CSV Standard Fields - Thong tin dong goi & logistics
+  @Column({ type: 'decimal', precision: 5, scale: 1, nullable: true })
+  weightPerM2?: number; // Trong luong (kg/m2)
+
+  @Column({ type: 'int', nullable: true })
+  piecesPerBox?: number; // So luong vien/thung
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  m2PerBox?: number; // m2/thung
+
+  @Column({ type: 'decimal', precision: 5, scale: 1, nullable: true })
+  weightPerBox?: number; // Trong luong/thung (kg)
+
+  @Column({ type: 'int', nullable: true })
+  boxesPerPallet?: number; // So luong thung/pallet
+
+  // CSV Standard Fields - Tieu chuan & phan loai
+  @Column({ type: 'text', nullable: true })
+  qualityStandard?: string; // Tieu chuan chat luong: BIa, BIb, TCVN 7132:2002, ISO 13006...
+
+  @Column({ type: 'text', nullable: true })
+  productLineName?: string; // Dong san pham
+
+  @Column({ type: 'text', nullable: true })
+  notes?: string; // Ghi chu
+
   @OneToMany(() => ProductionSummary, (sum) => sum.brickType)
   summaries: ProductionSummary[];
 
