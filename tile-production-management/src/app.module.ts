@@ -57,6 +57,8 @@ import { ProductionStageHistory } from './production-stage-history/entities/prod
 import { ProductionLineRun } from './production-line-runs/entities/production-line-run.entity';
 import { ProductionLineRunsModule } from './production-line-runs/production-line-runs.module';
 import { RunsAnalyticsModule } from './runs-analytics/runs-analytics.module';
+import { WorkshopTargetModule } from './workshop-target/workshop-target.module';
+import { WorkshopTarget } from './workshop-target/entities/workshop-target.entity';
 @Module({
     imports: [
         // Config module for environment variables
@@ -97,6 +99,7 @@ import { RunsAnalyticsModule } from './runs-analytics/runs-analytics.module';
                 ProductionStage,
                 ProductionStageHistory,
                 ProductionLineRun,
+                WorkshopTarget
             ],
             synchronize: true, // Set to true to auto-create tables (development/staging only)
             migrationsRun: false // Set to true when initial db
@@ -143,6 +146,7 @@ import { RunsAnalyticsModule } from './runs-analytics/runs-analytics.module';
         ProductionStageHistoryModule,
         ProductionLineRunsModule,
         RunsAnalyticsModule,
+        WorkshopTargetModule,
     ],
     providers: [
         {

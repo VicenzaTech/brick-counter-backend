@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { ProductionLine } from '../../production-lines/entities/production-line.entity';
+import { WorkshopTarget } from 'src/workshop-target/entities/workshop-target.entity';
 
 @Entity('workshops')
 export class Workshop {
@@ -20,4 +21,7 @@ export class Workshop {
 
   @OneToMany(() => ProductionLine, (line) => line.workshop)
   lines: ProductionLine[];
+
+  @OneToMany(() => WorkshopTarget, (target) => target.workshop)
+  targets: WorkshopTarget[];
 }

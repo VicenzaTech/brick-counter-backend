@@ -1182,6 +1182,11 @@ const PERMISSIONS = {
     QUOTA_TARGET_UPDATE: 'quota-target.update',
     QUOTA_TARGET_DELETE: 'quota-target.delete',
 
+    WORKSHOP_TARGET_READ: 'workshop-target.read',
+    WORKSHOP_TARGET_CREATE: 'workshop-target.create',
+    WORKSHOP_TARGET_UPDATE: 'workshop-target.update',
+    WORKSHOP_TARGET_DELETE: 'workshop-target.delete',
+
     // Maintenance
     MAINTENANCE_LOG_READ: 'maintenance-log.read',
     MAINTENANCE_LOG_CREATE: 'maintenance-log.create',
@@ -1269,6 +1274,11 @@ const PERMISSION_DEFINITIONS = [
     { code: PERMISSIONS.QUOTA_TARGET_CREATE, description: 'Create quota targets' },
     { code: PERMISSIONS.QUOTA_TARGET_UPDATE, description: 'Update quota targets' },
     { code: PERMISSIONS.QUOTA_TARGET_DELETE, description: 'Delete quota targets' },
+
+    { code: PERMISSIONS.WORKSHOP_TARGET_READ, description: 'Read workshop targets' },
+    { code: PERMISSIONS.WORKSHOP_TARGET_CREATE, description: 'Create workshop targets' },
+    { code: PERMISSIONS.WORKSHOP_TARGET_UPDATE, description: 'Update workshop targets' },
+    { code: PERMISSIONS.WORKSHOP_TARGET_DELETE, description: 'Delete workshop targets' },
 
     // Maintenance
     { code: PERMISSIONS.MAINTENANCE_LOG_READ, description: 'Read maintenance logs' },
@@ -1364,6 +1374,12 @@ const PERMISSION_GROUPS = {
         PERMISSIONS.QUOTA_TARGET_UPDATE,
         PERMISSIONS.QUOTA_TARGET_DELETE,
     ],
+    WORKSHOP_TARGET_MANAGE: [
+        PERMISSIONS.WORKSHOP_TARGET_READ,
+        PERMISSIONS.WORKSHOP_TARGET_CREATE,
+        PERMISSIONS.WORKSHOP_TARGET_UPDATE,
+        PERMISSIONS.WORKSHOP_TARGET_DELETE,
+    ],
     MAINTENANCE_LOG_MANAGE: [
         PERMISSIONS.MAINTENANCE_LOG_READ,
         PERMISSIONS.MAINTENANCE_LOG_CREATE,
@@ -1407,6 +1423,7 @@ const ROLE_DEFINITIONS = {
             ...PERMISSION_GROUPS.PRODUCTION_LINE_RUN_MANAGE,
             ...PERMISSION_GROUPS.PRODUCTION_METRIC_MANAGE,
             ...PERMISSION_GROUPS.QUOTA_TARGET_MANAGE,
+            ...PERMISSION_GROUPS.WORKSHOP_TARGET_MANAGE,
             ...PERMISSION_GROUPS.MAINTENANCE_LOG_MANAGE,
             ...PERMISSION_GROUPS.ANALYTICS_VIEW,
             ...PERMISSION_GROUPS.MQTT_OPERATIONS,
@@ -1431,6 +1448,7 @@ const ROLE_DEFINITIONS = {
             PERMISSIONS.PRODUCTION_LINE_RUN_READ,
             PERMISSIONS.PRODUCTION_METRIC_READ,
             PERMISSIONS.QUOTA_TARGET_READ,
+            PERMISSIONS.WORKSHOP_TARGET_READ,
             PERMISSIONS.MAINTENANCE_LOG_READ,
             PERMISSIONS.ANALYTICS_READ,
             PERMISSIONS.PRODUCTION_UPDATE,
@@ -1834,4 +1852,3 @@ async function seedProductionStages(dataSource: DataSource) {
 }
 
 bootstrap();
-
