@@ -1,8 +1,9 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { ProductionLineRunsService } from './production-line-runs.service';
+import { ProductionLineRunsService, ProductionLineRunStatisticsResponse } from './production-line-runs.service';
 import { CreateProductionLineRunDto } from './dtos/create-production-line-run.dto';
 import { UpdateProductionLineRunDto } from './dtos/update-production-line-run.dto';
 import { QueryProductionLineRunDto } from './dtos/query-production-line-run.dto';
+import { ProductionLineRunStatsQueryDto } from './dtos/run-statistics-query.dto';
 import { AuthGuard } from 'src/auth/guard/auth/auth.guard';
 import { PermissionGuard } from 'src/auth/guard/permission/permission.guard';
 import { Permission } from 'src/auth/decorator/permission/permission.decorator';
@@ -23,6 +24,14 @@ export class ProductionLineRunsController {
     @Permission(PERMISSIONS.PRODUCTION_LINE_RUN_READ)
     findAll(@Query() query: QueryProductionLineRunDto) {
         return this.productionLineRunsService.findAll(query);
+    }
+
+    @Get('statistics')
+    @Permission(PERMISSIONS.PRODUCTION_LINE_RUN_READ)
+    getStatistics(
+        @Query() query: ProductionLineRunStatsQueryDto,
+    ): Promise<ProductionLineRunStatisticsResponse> {
+        return this.productionLineRunsService.getStatistics(query);
     }
 
     @Get(':id')

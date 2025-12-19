@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder, ObjectLiteral } from 'typeorm';
 import { ProductionLineRun } from './entities/production-line-run.entity';
 import { CreateProductionLineRunDto } from './dtos/create-production-line-run.dto';
 import { UpdateProductionLineRunDto } from './dtos/update-production-line-run.dto';
 import { QueryProductionLineRunDto } from './dtos/query-production-line-run.dto';
 import { ProductionRecord } from 'src/runs-analytics/types/record.type';
+import { ProductionLineRunStatsQueryDto } from './dtos/run-statistics-query.dto';
 
 export type StageCategory = 'press' | 'bisque' | 'glaze' | 'grind' | 'packaging';
 
@@ -23,6 +24,39 @@ export interface StageCompletionPayload extends StageStartPayload {
     endTime?: Date;
     quantity?: number;
     area?: number;
+}
+
+export interface ProductionLineRunStatisticsResponse {
+    filters: {
+        productionLineId?: number;
+        brickTypeId?: number;
+        from?: string;
+        to?: string;
+    };
+    totals: {
+        runs: number;
+        completedRuns: number;
+        inProgressRuns: number;
+        draftRuns: number;
+        totalPieces: number;
+        totalAreaM2: number;
+        averageDurationMinutes: number;
+    };
+    quality: {
+        a1Pieces: number;
+        a2Pieces: number;
+        wastePieces: number;
+        wasteRate: number;
+        yieldPercent: number;
+    };
+    statusBreakdown: { status: string; count: number }[];
+    topLines: {
+        productionLineId: number | null;
+        productionLineName: string;
+        runCount: number;
+        totalPieces: number;
+        totalAreaM2: number;
+    }[];
 }
 
 @Injectable()
@@ -196,6 +230,72 @@ export class ProductionLineRunsService {
         await this.runRepository.remove(run);
     }
 
+    async getStatistics(query: ProductionLineRunStatsQueryDto): Promise<ProductionLineRunStatisticsResponse> {
+        const [summary, statusRows, lineRows] = await Promise.all([
+            this.buildSummaryQuery(query).getRawOne(),
+            this.buildStatusBreakdownQuery(query).getRawMany(),
+            this.buildLineBreakdownQuery(query).getRawMany(),
+        ]);
+
+        const totalRuns = this.parseNumber(summary?.run_count);
+        const totalPieces = this.parseNumber(summary?.total_pieces);
+        const totalArea = this.parseNumber(summary?.total_area);
+        const completedRuns = this.parseNumber(summary?.completed_runs);
+        const inProgressRuns = this.parseNumber(summary?.in_progress_runs);
+        const draftRuns = this.parseNumber(summary?.draft_runs);
+        const avgDuration = this.parseNumber(summary?.avg_duration_minutes);
+
+        const a1Pieces = this.parseNumber(summary?.a1_pieces);
+        const a2Pieces = this.parseNumber(summary?.a2_pieces);
+        const wastePieces =
+            this.parseNumber(summary?.cut_lo_pieces) +
+            this.parseNumber(summary?.phe1_pieces) +
+            this.parseNumber(summary?.phe2_pieces) +
+            this.parseNumber(summary?.phe_huy_pieces);
+        const wasteRate = totalPieces > 0 ? (wastePieces / totalPieces) * 100 : 0;
+        const yieldPercent = totalPieces > 0 ? (a1Pieces / totalPieces) * 100 : 0;
+
+        const statusBreakdown = statusRows.map((row) => ({
+            status: row.status ?? 'unknown',
+            count: this.parseNumber(row.count),
+        }));
+
+        const topLines = lineRows.map((row) => ({
+            productionLineId: row.line_id !== null ? Number(row.line_id) : null,
+            productionLineName: row.line_name ?? 'Unknown line',
+            runCount: this.parseNumber(row.run_count),
+            totalPieces: this.parseNumber(row.total_pieces),
+            totalAreaM2: this.parseNumber(row.total_area),
+        }));
+
+        return {
+            filters: {
+                productionLineId: query.productionLineId,
+                brickTypeId: query.brickTypeId,
+                from: query.from,
+                to: query.to,
+            },
+            totals: {
+                runs: totalRuns,
+                completedRuns,
+                inProgressRuns,
+                draftRuns,
+                totalPieces,
+                totalAreaM2: totalArea,
+                averageDurationMinutes: Math.round(avgDuration * 100) / 100,
+            },
+            quality: {
+                a1Pieces,
+                a2Pieces,
+                wastePieces,
+                wasteRate: Math.round(wasteRate * 100) / 100,
+                yieldPercent: Math.round(yieldPercent * 100) / 100,
+            },
+            statusBreakdown,
+            topLines,
+        };
+    }
+
     async registerStageStart(payload: StageStartPayload): Promise<ProductionLineRun> {
         if (!['press', 'grind'].includes(payload.stageCategory)) {
             return this.getOrCreateActiveRun(payload.productionLineId, payload.startTime, payload.brickTypeId);
@@ -326,7 +426,6 @@ export class ProductionLineRunsService {
         return Math.round((output / input) * 10000) / 100;
     }
 
-
     async analyticsRuns(productionLineId: 'all' | string, fromDate: Date, toDate: Date): Promise<ProductionRecord[]> {
         const qb = this.runRepository
             .createQueryBuilder('run')
@@ -393,5 +492,77 @@ export class ProductionLineRunsService {
                 waste_thanh_pham: wasteThanhPham,
             };
         });
+    }
+
+    private buildSummaryQuery(query: ProductionLineRunStatsQueryDto) {
+        const qb = this.runRepository
+            .createQueryBuilder('run')
+            .select('COUNT(run.id)', 'run_count')
+            .addSelect(`SUM(CASE WHEN run.status = 'completed' THEN 1 ELSE 0 END)`, 'completed_runs')
+            .addSelect(`SUM(CASE WHEN run.status = 'in_progress' THEN 1 ELSE 0 END)`, 'in_progress_runs')
+            .addSelect(`SUM(CASE WHEN run.status = 'draft' THEN 1 ELSE 0 END)`, 'draft_runs')
+            .addSelect('SUM(run.totalPieces)', 'total_pieces')
+            .addSelect('SUM(run.totalAreaM2)', 'total_area')
+            .addSelect('SUM(run.a1Pieces)', 'a1_pieces')
+            .addSelect('SUM(run.a2Pieces)', 'a2_pieces')
+            .addSelect('SUM(run.cutLoPieces)', 'cut_lo_pieces')
+            .addSelect('SUM(run.phe1Pieces)', 'phe1_pieces')
+            .addSelect('SUM(run.phe2Pieces)', 'phe2_pieces')
+            .addSelect('SUM(run.pheHuyPieces)', 'phe_huy_pieces')
+            .addSelect('AVG(run.durationMinutes)', 'avg_duration_minutes');
+
+        this.applyStatisticsFilters(qb, query);
+        return qb;
+    }
+
+    private buildStatusBreakdownQuery(query: ProductionLineRunStatsQueryDto) {
+        const qb = this.runRepository
+            .createQueryBuilder('run')
+            .select('run.status', 'status')
+            .addSelect('COUNT(run.id)', 'count')
+            .groupBy('run.status');
+
+        this.applyStatisticsFilters(qb, query);
+        return qb;
+    }
+
+    private buildLineBreakdownQuery(query: ProductionLineRunStatsQueryDto) {
+        const qb = this.runRepository
+            .createQueryBuilder('run')
+            .leftJoin('run.productionLine', 'line')
+            .select('line.id', 'line_id')
+            .addSelect('line.name', 'line_name')
+            .addSelect('COUNT(run.id)', 'run_count')
+            .addSelect('SUM(run.totalPieces)', 'total_pieces')
+            .addSelect('SUM(run.totalAreaM2)', 'total_area')
+            .groupBy('line.id')
+            .addGroupBy('line.name')
+            .orderBy('SUM(run.totalPieces)', 'DESC')
+            .limit(10);
+
+        this.applyStatisticsFilters(qb, query);
+        return qb;
+    }
+
+    private applyStatisticsFilters<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>, query: ProductionLineRunStatsQueryDto): void {
+        if (query.productionLineId) {
+            qb.andWhere('run.productionLineId = :productionLineId', { productionLineId: query.productionLineId });
+        }
+        if (query.brickTypeId) {
+            qb.andWhere('run.brickTypeId = :brickTypeId', { brickTypeId: query.brickTypeId });
+        }
+        if (query.from) {
+            const fromDate = new Date(query.from);
+            qb.andWhere('COALESCE(run.startTime, run.endTime) >= :fromDate', { fromDate });
+        }
+        if (query.to) {
+            const toDate = new Date(query.to);
+            qb.andWhere('COALESCE(run.endTime, run.startTime) <= :toDate', { toDate });
+        }
+    }
+
+    private parseNumber(value: any): number {
+        const parsed = Number(value ?? 0);
+        return Number.isFinite(parsed) ? parsed : 0;
     }
 }

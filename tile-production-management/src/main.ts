@@ -1106,7 +1106,7 @@ async function seedWorkShopProductionLine(dataSource: DataSource) {
 }
 
 // ===============================
-//        RBAC SEEDING
+//        RBAC SEEDINGw
 // ===============================
 const PERMISSIONS = {
     // User

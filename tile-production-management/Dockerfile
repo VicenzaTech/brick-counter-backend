@@ -17,10 +17,17 @@ WORKDIR /app
 ENV NODE_ENV=development
 ENV PORT=5555
 
+# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
+# Copy source code (will be overridden by volume mount in docker-compose)
+
+# Build once at image build time (for fallback)
+
 EXPOSE 5555
+
+# Watch mode - will reload on file changes via volume mount
 CMD ["npm", "run", "start:dev"]
 
 # === PRODUCTION STAGE ===

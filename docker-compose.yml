@@ -32,6 +32,7 @@ services:
       COOKIE_DOMAIN: localhost
       CHOKIDAR_USEPOLLING: 'true'
       CHOKIDAR_INTERVAL: 1000
+      WATCHPACK_POLLING: 'true'
 
       # Hash Config
       HASH_ROUNDS: 12
@@ -51,7 +52,7 @@ services:
       - /app/node_modules
 
 
-    command: npm run start:dev
+    command: /bin/sh -c "npm run build && npm run start:dev"
 
     depends_on:
       - redis
