@@ -1,9 +1,8 @@
-# Multi-stage Dockerfile for tile-production-management (NestJS)
+# === BUILDER STAGE ===
 FROM node:22-alpine AS builder
-
 WORKDIR /app
 
-# Install build deps
+# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
@@ -11,18 +10,38 @@ RUN npm install --legacy-peer-deps
 COPY . .
 RUN npm run build
 
-## Runner stage
-FROM node:22-alpine AS runner
+# === DEVELOPMENT STAGE ===
+FROM node:22-alpine AS dev
+WORKDIR /app
+
+ENV NODE_ENV=development
+ENV PORT=5555
+
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Copy source code (will be overridden by volume mount in docker-compose)
+
+# Build once at image build time (for fallback)
+
+EXPOSE 5555
+
+# Watch mode - will reload on file changes via volume mount
+CMD ["npm", "run", "start:dev"]
+
+# === PRODUCTION STAGE ===
+FROM node:22-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Copy only what we need for runtime
+# Copy only production dependencies
 COPY package*.json ./
 RUN npm install --production --legacy-peer-deps
 
-# Copy built artifacts
+# Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000

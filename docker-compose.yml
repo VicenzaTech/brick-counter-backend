@@ -5,6 +5,7 @@ services:
     build:
       context: ./tile-production-management
       dockerfile: Dockerfile
+      target: dev
     container_name: tile-production-backend
     restart: unless-stopped
     environment:
@@ -26,10 +27,12 @@ services:
       DB_USERNAME: admin
       DB_PASSWORD: 123456
       DB_DATABASE: brick-counter-dev
-      DB_SYNCHRONIZE: false'
+      DB_SYNCHRONIZE: true
       DB_LOGGING: 'false'
       COOKIE_DOMAIN: localhost
-
+      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_INTERVAL: 1000
+      WATCHPACK_POLLING: 'true'
 
       # Hash Config
       HASH_ROUNDS: 12
@@ -48,7 +51,8 @@ services:
       - ./tile-production-management:/app
       - /app/node_modules
 
-    command: sh -c "npm install && npm run start:dev"
+
+    command: /bin/sh -c "npm run build && npm run start:dev"
 
     depends_on:
       - redis

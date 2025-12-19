@@ -15,6 +15,7 @@ export enum ActivityEntityType {
   DeviceCluster = 'DeviceCluster',
   ProductionMetric = 'ProductionMetric',
   QuotaTarget = 'QuotaTarget',
+  WorkshopTarget = 'WorkshopTarget',
   Setting = 'Setting',
   Other = 'Other',
   Attachment = 'Attachment',
@@ -194,6 +195,11 @@ export type ActivityAction =
   | 'CREATE_PRODUCTION_METRIC'
   | 'UPDATE_PRODUCTION_METRIC'
   | 'DELETE_PRODUCTION_METRIC'
+
+  // WORKSHOP TARGETS
+  | 'CREATE_WORKSHOP_TARGET'
+  | 'UPDATE_WORKSHOP_TARGET'
+  | 'DELETE_WORKSHOP_TARGET'
 
   // TOKEN / API KEY
   | 'GENERATE_API_TOKEN'
