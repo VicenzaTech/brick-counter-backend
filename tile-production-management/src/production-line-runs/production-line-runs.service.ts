@@ -7,6 +7,7 @@ import { UpdateProductionLineRunDto } from './dtos/update-production-line-run.dt
 import { QueryProductionLineRunDto } from './dtos/query-production-line-run.dto';
 import { ProductionRecord } from 'src/runs-analytics/types/record.type';
 import { ProductionLineRunStatsQueryDto } from './dtos/run-statistics-query.dto';
+import { ProductionLine } from 'src/production-lines/entities/production-line.entity';
 
 export type StageCategory = 'press' | 'bisque' | 'glaze' | 'grind' | 'packaging';
 
@@ -29,6 +30,7 @@ export interface StageCompletionPayload extends StageStartPayload {
 export interface ProductionLineRunStatisticsResponse {
     filters: {
         productionLineId?: number;
+        workshopId?: number;
         brickTypeId?: number;
         from?: string;
         to?: string;
@@ -57,6 +59,11 @@ export interface ProductionLineRunStatisticsResponse {
         totalPieces: number;
         totalAreaM2: number;
     }[];
+    charts: {
+        statusDistribution: { labels: string[]; data: number[] };
+        qualityPieces: { labels: string[]; data: number[] };
+        outputByLine: { labels: string[]; data: number[] };
+    };
 }
 
 @Injectable()
@@ -271,6 +278,7 @@ export class ProductionLineRunsService {
         return {
             filters: {
                 productionLineId: query.productionLineId,
+                workshopId: query.workshopId,
                 brickTypeId: query.brickTypeId,
                 from: query.from,
                 to: query.to,
@@ -293,6 +301,20 @@ export class ProductionLineRunsService {
             },
             statusBreakdown,
             topLines,
+            charts: {
+                statusDistribution: {
+                    labels: statusBreakdown.map((item) => item.status),
+                    data: statusBreakdown.map((item) => item.count),
+                },
+                qualityPieces: {
+                    labels: ['A1', 'A2', 'Waste'],
+                    data: [a1Pieces, a2Pieces, wastePieces],
+                },
+                outputByLine: {
+                    labels: topLines.map((item) => item.productionLineName),
+                    data: topLines.map((item) => item.totalPieces),
+                },
+            },
         };
     }
 
@@ -437,6 +459,7 @@ export class ProductionLineRunsService {
             .addSelect('run.startTime', 'run_start_time')
             .addSelect('run.endTime', 'run_end_time')
             .addSelect('run.totalPieces', 'run_total_pieces')
+            .addSelect('run.totalAreaM2', 'run_total_area_m2')
             .addSelect('run.a1Pieces', 'run_a1_pieces')
             .addSelect('run.a2Pieces', 'run_a2_pieces')
             .addSelect('run.cutLoPieces', 'run_cut_lo_pieces')
@@ -460,6 +483,7 @@ export class ProductionLineRunsService {
             const phe1Pieces = this.resolveNumber(row.run_phe1_pieces, 0);
             const phe2Pieces = this.resolveNumber(row.run_phe2_pieces, 0);
             const pheHuyPieces = this.resolveNumber(row.run_phe_huy_pieces, 0);
+            const totalAreaM2 = this.resolveNumber(row.run_total_area_m2, 0);
             const outputDate = row.run_end_time ?? row.run_start_time;
             const date = outputDate ? new Date(outputDate).toISOString().split('T')[0] : '';
 
@@ -480,6 +504,7 @@ export class ProductionLineRunsService {
                 lineName: row.line_name ?? 'Unknown line',
                 productType: row.brick_type_name ?? 'Unknown',
                 originalOutput: totalPieces,
+                totalAreaM2,
                 a1: a1Pieces,
                 a2: a2Pieces,
                 cut: cutLoPieces,
@@ -497,6 +522,7 @@ export class ProductionLineRunsService {
     private buildSummaryQuery(query: ProductionLineRunStatsQueryDto) {
         const qb = this.runRepository
             .createQueryBuilder('run')
+            .leftJoin('run.productionLine', 'line')
             .select('COUNT(run.id)', 'run_count')
             .addSelect(`SUM(CASE WHEN run.status = 'completed' THEN 1 ELSE 0 END)`, 'completed_runs')
             .addSelect(`SUM(CASE WHEN run.status = 'in_progress' THEN 1 ELSE 0 END)`, 'in_progress_runs')
@@ -518,6 +544,7 @@ export class ProductionLineRunsService {
     private buildStatusBreakdownQuery(query: ProductionLineRunStatsQueryDto) {
         const qb = this.runRepository
             .createQueryBuilder('run')
+            .leftJoin('run.productionLine', 'line')
             .select('run.status', 'status')
             .addSelect('COUNT(run.id)', 'count')
             .groupBy('run.status');
@@ -547,6 +574,16 @@ export class ProductionLineRunsService {
     private applyStatisticsFilters<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>, query: ProductionLineRunStatsQueryDto): void {
         if (query.productionLineId) {
             qb.andWhere('run.productionLineId = :productionLineId', { productionLineId: query.productionLineId });
+        }
+        if (query.workshopId) {
+            const workshopSubQuery = qb
+                .subQuery()
+                .select('line_filter.id')
+                .from(ProductionLine, 'line_filter')
+                .innerJoin('line_filter.workshop', 'workshop_filter')
+                .where('workshop_filter.id = :workshopId')
+                .getQuery();
+            qb.andWhere(`run.productionLineId IN ${workshopSubQuery}`, { workshopId: query.workshopId });
         }
         if (query.brickTypeId) {
             qb.andWhere('run.brickTypeId = :brickTypeId', { brickTypeId: query.brickTypeId });

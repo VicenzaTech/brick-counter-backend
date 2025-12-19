@@ -48,13 +48,32 @@ export class RunsAnalyticsService {
             range: query.range,
         });
 
-        const [records, filterOptions] = await Promise.all([
-            this.productionLineRunsService.analyticsRuns(productionLineId, dateRange.fromDate, dateRange.toDate),
+        const now = new Date();
+        const endOfToday = new Date(now);
+        endOfToday.setUTCHours(23, 59, 59, 999);
+        let effectiveToDate = dateRange.toDate > endOfToday ? endOfToday : dateRange.toDate;
+        let effectiveFromDate = dateRange.fromDate;
+        if (effectiveFromDate > effectiveToDate) {
+            effectiveFromDate = new Date(effectiveToDate);
+            effectiveFromDate.setUTCHours(0, 0, 0, 0);
+        }
+
+        const [rawRecords, filterOptions] = await Promise.all([
+            this.productionLineRunsService.analyticsRuns(productionLineId, effectiveFromDate, effectiveToDate),
             this.loadProductionLineOptions(),
         ]);
 
+        const selectedLineLabel = this.resolveLineLabel(filterOptions, productionLineId);
+        const records = this.aggregateRecords(
+            rawRecords,
+            effectiveFromDate,
+            effectiveToDate,
+            dateRange.appliedRange,
+            selectedLineLabel,
+        );
+
         return {
-            filters: this.buildFilters(filterOptions, productionLineId, dateRange.appliedRange, dateRange.fromDate, dateRange.toDate),
+            filters: this.buildFilters(filterOptions, productionLineId, dateRange.appliedRange, effectiveFromDate, effectiveToDate),
             kpiCards: this.buildKpiCards(records),
             records,
         };
@@ -143,5 +162,178 @@ export class RunsAnalyticsService {
     private roundMetric(value: number, digits = 2): number {
         const factor = Math.pow(10, digits);
         return Math.round(value * factor) / factor;
+    }
+
+    private resolveLineLabel(options: { id: string; label: string }[], selectedId: string): string {
+        const found = options.find((option) => option.id === selectedId);
+        if (found) {
+            return found.label;
+        }
+        if (selectedId === 'all') {
+            return 'Tất cả dây chuyền';
+        }
+        return `Dây chuyền ${selectedId}`;
+    }
+
+    private aggregateRecords(
+        rawRecords: ProductionRecord[],
+        fromDate: Date,
+        toDate: Date,
+        appliedRange: AnalyticsAppliedRange,
+        lineLabel: string,
+    ): ProductionRecord[] {
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        const totalDays = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / DAY_MS) + 1);
+        const useMonthly = appliedRange === '12m' || totalDays > 92;
+
+        const buckets: { key: string; start: Date; end: Date; label: string }[] = [];
+
+        if (useMonthly) {
+            const endMonthIndex = toDate.getUTCFullYear() * 12 + toDate.getUTCMonth();
+            const startMonthIndex = fromDate.getUTCFullYear() * 12 + fromDate.getUTCMonth();
+            const monthsBetween = Math.max(1, endMonthIndex - startMonthIndex + 1);
+            const limit = appliedRange === '12m' || monthsBetween > 12 ? 12 : monthsBetween;
+            for (let offset = limit - 1; offset >= 0; offset--) {
+                const monthIndex = endMonthIndex - offset;
+                const year = Math.floor(monthIndex / 12);
+                const month = monthIndex % 12;
+                const bucketStart = new Date(Date.UTC(year, month, 1));
+                if (bucketStart < fromDate) {
+                    continue;
+                }
+                const nextMonth = new Date(Date.UTC(year, month + 1, 1));
+                const bucketEnd = new Date(nextMonth.getTime() - 1);
+                buckets.push({
+                    key: `${year}-${String(month + 1).padStart(2, '0')}`,
+                    start: bucketStart,
+                    end: bucketEnd <= toDate ? bucketEnd : new Date(toDate.getTime()),
+                    label: `${year}-${String(month + 1).padStart(2, '0')}`,
+                });
+            }
+            if (!buckets.length) {
+                const monthIndex = endMonthIndex;
+                const year = Math.floor(monthIndex / 12);
+                const month = monthIndex % 12;
+                const bucketStart = new Date(Date.UTC(year, month, 1));
+                const nextMonth = new Date(Date.UTC(year, month + 1, 1));
+                buckets.push({
+                    key: `${year}-${String(month + 1).padStart(2, '0')}`,
+                    start: bucketStart,
+                    end: new Date(nextMonth.getTime() - 1),
+                    label: `${year}-${String(month + 1).padStart(2, '0')}`,
+                });
+            }
+        } else {
+            const startDay = new Date(fromDate);
+            startDay.setUTCHours(0, 0, 0, 0);
+
+            let effectiveStart = startDay;
+            if (appliedRange === '30d') {
+                const monthStart = new Date(Date.UTC(toDate.getUTCFullYear(), toDate.getUTCMonth(), 1));
+                effectiveStart = monthStart;
+            }
+
+            const startCandidate = effectiveStart < startDay ? startDay : effectiveStart;
+            const rangeDays = Math.max(1, Math.floor((toDate.getTime() - startCandidate.getTime()) / DAY_MS) + 1);
+            const desired = appliedRange === '30d' ? Math.min(30, rangeDays) : rangeDays;
+
+            for (let i = 0; i < desired; i++) {
+                const dayStart = new Date(startCandidate);
+                dayStart.setUTCDate(startCandidate.getUTCDate() + i);
+                if (dayStart > toDate) {
+                    break;
+                }
+                const dayEnd = new Date(dayStart.getTime());
+                dayEnd.setUTCHours(23, 59, 59, 999);
+                const key = dayStart.toISOString().split('T')[0];
+                buckets.push({ key, start: dayStart, end: dayEnd, label: key });
+            }
+            if (!buckets.length) {
+                const key = fromDate.toISOString().split('T')[0];
+                const fallbackStart = new Date(fromDate);
+                fallbackStart.setUTCHours(0, 0, 0, 0);
+                const fallbackEnd = new Date(fallbackStart.getTime());
+                fallbackEnd.setUTCHours(23, 59, 59, 999);
+                buckets.push({ key, start: fallbackStart, end: fallbackEnd, label: key });
+            }
+        }
+
+        const aggregated = buckets.map((bucket) => ({
+            bucket,
+            totals: {
+                originalOutput: 0,
+                totalAreaM2: 0,
+                a1: 0,
+                a2: 0,
+                cut: 0,
+                waste1: 0,
+                waste2: 0,
+                scrap: 0,
+                waste_moc: 0,
+                waste_lo: 0,
+                waste_truoc_mai: 0,
+                waste_thanh_pham: 0,
+            },
+            count: 0,
+        }));
+
+        rawRecords.forEach((record) => {
+            if (!record.date) {
+                return;
+            }
+            const recordDate = new Date(`${record.date}T00:00:00.000Z`);
+            const target = aggregated.find(
+                (entry) => recordDate >= entry.bucket.start && recordDate <= entry.bucket.end,
+            );
+            if (!target) {
+                return;
+            }
+            target.totals.originalOutput += Number(record.originalOutput) || 0;
+            target.totals.totalAreaM2 += Number(record.totalAreaM2) || 0;
+            target.totals.a1 += Number(record.a1) || 0;
+            target.totals.a2 += Number(record.a2) || 0;
+            target.totals.cut += Number(record.cut) || 0;
+            target.totals.waste1 += Number(record.waste1) || 0;
+            target.totals.waste2 += Number(record.waste2) || 0;
+            target.totals.scrap += Number(record.scrap) || 0;
+            target.totals.waste_moc += Number(record.waste_moc) || 0;
+            target.totals.waste_lo += Number(record.waste_lo) || 0;
+            target.totals.waste_truoc_mai += Number(record.waste_truoc_mai) || 0;
+            target.totals.waste_thanh_pham += Number(record.waste_thanh_pham) || 0;
+            target.count += 1;
+        });
+
+        return aggregated.map((entry) => {
+            const divisor = entry.count || 1;
+            const sampleRecord =
+                entry.count === 1
+                    ? rawRecords.find((record) => {
+                        if (!record.date) {
+                            return false;
+                        }
+                        const recordDate = new Date(`${record.date}T00:00:00.000Z`);
+                        return recordDate >= entry.bucket.start && recordDate <= entry.bucket.end;
+                    })
+                    : undefined;
+
+            return {
+                key: entry.bucket.key,
+                date: entry.bucket.label.length === 7 ? `${entry.bucket.label}-01` : entry.bucket.label,
+                lineName: lineLabel,
+                productType: sampleRecord?.productType ?? '...',
+                originalOutput: entry.totals.originalOutput,
+                totalAreaM2: entry.totals.totalAreaM2,
+                a1: entry.totals.a1,
+                a2: entry.totals.a2,
+                cut: entry.totals.cut,
+                waste1: entry.totals.waste1,
+                waste2: entry.totals.waste2,
+                scrap: entry.totals.scrap,
+                waste_moc: entry.totals.waste_moc / divisor,
+                waste_lo: entry.totals.waste_lo / divisor,
+                waste_truoc_mai: entry.totals.waste_truoc_mai / divisor,
+                waste_thanh_pham: entry.totals.waste_thanh_pham / divisor,
+            };
+        });
     }
 }

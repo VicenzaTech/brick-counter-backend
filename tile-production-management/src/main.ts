@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
 import { ProductionLine } from './production-lines/entities/production-line.entity';
+import { ProductionLineRun } from './production-line-runs/entities/production-line-run.entity';
 import { ProductionStage } from './production-stages/entities/production-stage.entity';
 import { Position } from './positions/entities/position.entity';
 import cookieParser from 'cookie-parser';
@@ -953,6 +954,79 @@ async function seedDevices(dataSource: DataSource) {
     }
 }
 
+async function seedProductionLineRuns(dataSource: DataSource) {
+    const runRepository = dataSource.getRepository(ProductionLineRun);
+    const lineRepository = dataSource.getRepository(ProductionLine);
+    const targetLines = [
+        { name: 'Dây chuyền 5', sampleDays: 5 },
+        { name: 'Dây chuyền 6', sampleDays: 5 },
+    ];
+
+    for (const target of targetLines) {
+        const line = await lineRepository.findOne({ where: { name: target.name } });
+        if (!line) {
+            console.warn(`⚠️  Production line ${target.name} not found, skip seeding runs.`);
+            continue;
+        }
+
+        const existing = await runRepository.count({ where: { productionLineId: line.id } });
+        if (existing > 0) {
+            console.log(`ℹ️  Production runs already exist for ${target.name}, skip seeding.`);
+            continue;
+        }
+
+        const runs: ProductionLineRun[] = [];
+        for (let day = 0; day < target.sampleDays; day++) {
+            const startTime = new Date();
+            startTime.setUTCHours(6, 0, 0, 0);
+            startTime.setUTCDate(startTime.getUTCDate() - (target.sampleDays - day));
+
+            const endTime = new Date(startTime.getTime());
+            endTime.setUTCHours(18, 0, 0, 0);
+
+            const totalPieces = 1400 + day * 120;
+            const totalAreaM2 = Number((totalPieces * 1.45).toFixed(2));
+            const a1Pieces = Math.round(totalPieces * 0.78);
+            const a2Pieces = Math.round(totalPieces * 0.16);
+            const cutLoPieces = Math.round(totalPieces * 0.02);
+            const waste1 = Math.round(totalPieces * 0.015);
+            const waste2 = Math.round(totalPieces * 0.01);
+            const scrap = Math.round(totalPieces * 0.005);
+
+            const run = runRepository.create({
+                productionLineId: line.id,
+                startTime,
+                endTime,
+                durationMinutes: Math.max(0, Math.round((endTime.getTime() - startTime.getTime()) / 60000)),
+                totalPieces,
+                totalAreaM2,
+                status: 'completed',
+                dataSource: 'manual',
+                a1Pieces,
+                a2Pieces,
+                cutLoPieces,
+                phe1Pieces: waste1,
+                phe2Pieces: waste2,
+                pheHuyPieces: scrap,
+                pressQuantity: totalPieces + Math.round(totalPieces * 0.05),
+                pressArea: Number(((totalPieces + 100) * 1.5).toFixed(2)),
+                bisqueQuantity: totalPieces + Math.round(totalPieces * 0.03),
+                bisqueArea: Number(((totalPieces + 70) * 1.4).toFixed(2)),
+                glazeQuantity: totalPieces + Math.round(totalPieces * 0.02),
+                glazeArea: Number(((totalPieces + 40) * 1.35).toFixed(2)),
+                grindQuantity: totalPieces,
+                grindArea: Number((totalPieces * 1.32).toFixed(2)),
+                packagingQuantity: totalPieces,
+                packagingArea: Number((totalPieces * 1.28).toFixed(2)),
+            });
+            runs.push(run);
+        }
+
+        await runRepository.save(runs);
+        console.log(`✅ Seeded ${runs.length} production line runs for ${target.name}`);
+    }
+}
+
 // -----------------------------------------------
 // Data generator
 // -----------------------------------------------
@@ -1632,6 +1706,7 @@ async function bootstrap() {
     await seedDeviceCluster(dataSource, measurementTypeId);
 
     await seedDevices(dataSource);
+    await seedProductionLineRuns(dataSource);
 
     // Validator Request Body Pipe 
     // app.useGlobalPipes(new ValidationPipe({

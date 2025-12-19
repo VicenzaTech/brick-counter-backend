@@ -4,6 +4,7 @@ export type ProductionRecord = {
   lineName: string;          // tên dây chuyền
   productType: string;       // loại sản phẩm
   originalOutput: number;    // sản lượng đầu vào (m³)
+  totalAreaM2: number;       // diện tích quy đổi (m²)
   a1: number;                // sản phẩm loại A1
   a2: number;
   cut: number;

@@ -10,6 +10,11 @@ export class ProductionLineRunStatsQueryDto {
     @IsOptional()
     @Type(() => Number)
     @IsInt()
+    workshopId?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
     brickTypeId?: number;
 
     @IsOptional()
@@ -20,4 +25,3 @@ export class ProductionLineRunStatsQueryDto {
     @IsDateString()
     to?: string;
 }
-
