@@ -17,7 +17,7 @@ services:
       REDIS_PORT: 6379
 
       # MQTT config
-      MQTT_HOST: 192.168.221.4
+      MQTT_HOST: mosquitto
       MQTT_PORT: 1883
 
       # Database config (TypeORM) - Use Docker Postgres container
@@ -95,15 +95,15 @@ services:
       timeout: 5s
       retries: 5
 
-  # mosquitto:
-  #   image: eclipse-mosquitto:2.0
-  #   container_name: tile-mosquitto
-  #   restart: unless-stopped
-  #   ports:
-  #     - '1883:1883'
-  #     - '9001:9001'
-  #   volumes:
-  #     - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: tile-mosquitto
+    restart: unless-stopped
+    ports:
+      - '1883:1883'
+      - '9001:9001'
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
 
   # python-analytics:
   #   build:
